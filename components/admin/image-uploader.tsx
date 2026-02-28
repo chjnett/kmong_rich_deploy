@@ -1,0 +1,132 @@
+"use client"
+
+import { useState, useRef } from "react"
+import { Upload, X, Loader2 } from "lucide-react"
+import Image from "next/image"
+
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+import { supabase } from "@/lib/supabase"
+
+interface ImageUploaderProps {
+    images: string[]
+    onChange: (images: string[]) => void
+    maxImages?: number // Optional limit (we will not use it practically but good for API)
+}
+
+export function ImageUploader({ images, onChange, maxImages = Infinity }: ImageUploaderProps) {
+    const [isUploading, setIsUploading] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files
+        if (!files || files.length === 0) return
+
+        setIsUploading(true)
+        const newImages = [...images]
+
+
+
+
+        try {
+            for (let i = 0; i < files.length; i++) {
+                if (newImages.length >= maxImages) break
+
+                const file = files[i]
+                const fileExt = file.name.split('.').pop()
+                const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`
+                const filePath = `${fileName}`
+
+                const { error: uploadError } = await supabase.storage
+                    .from('product-images')
+                    .upload(filePath, file)
+
+                if (uploadError) {
+                    console.error('Error uploading file:', uploadError)
+                    continue
+                }
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('product-images')
+                    .getPublicUrl(filePath)
+
+                newImages.push(publicUrl)
+            }
+
+            onChange(newImages)
+        } catch (error) {
+            console.error('Error uploading images:', error)
+        } finally {
+            setIsUploading(false)
+            if (fileInputRef.current) {
+                fileInputRef.current.value = ''
+            }
+        }
+    }
+
+    const removeImage = (indexToRemove: number) => {
+        onChange(images.filter((_, index) => index !== indexToRemove))
+    }
+
+    return (
+        <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+                {images.map((url, index) => (
+                    <div key={index} className="group relative aspect-[4/5] overflow-hidden rounded-md border border-[#262626] bg-[#111111]">
+                        <Image
+                            src={url}
+                            alt={`Product image ${index + 1}`}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 768px) 50vw, 33vw"
+                        />
+                        <button
+                            onClick={() => removeImage(index)}
+                            className="absolute top-2 right-2 rounded-full bg-black/50 p-1 text-white opacity-0 transition-opacity hover:bg-black/80 group-hover:opacity-100"
+                            type="button"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                        {index === 0 && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 py-1 text-center text-xs text-white">
+                                대표 이미지
+                            </div>
+                        )}
+                    </div>
+                ))}
+
+                {images.length < maxImages && (
+                    <div
+                        onClick={() => fileInputRef.current?.click()}
+                        className={cn(
+                            "flex aspect-[4/5] cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed border-[#262626] bg-[#111111] text-[#737373] transition-colors hover:border-[#c9a962] hover:text-[#c9a962]",
+                            isUploading && "pointer-events-none opacity-50"
+                        )}
+                    >
+                        {isUploading ? (
+                            <Loader2 className="h-6 w-6 animate-spin" />
+                        ) : (
+                            <>
+                                <Upload className="h-6 w-6" />
+                                <span className="text-xs">이미지 업로드</span>
+                            </>
+                        )}
+                    </div>
+                )}
+            </div>
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleUpload}
+                className="hidden"
+                multiple
+                accept="image/*"
+            />
+            <p className="text-xs text-[#525252]">
+                * 첫 번째 이미지가 대표 이미지로 설정됩니다.
+                <br />
+                * 여러 장의 이미지를 동시에 선택할 수 있습니다.
+            </p>
+        </div>
+    )
+}

@@ -1,0 +1,53 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# local env files
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# User Data & Heavy Files
+/scripts/chrome_profile/
+/images/
+/crawled_products.xlsx
+/price_numeric_output.txt
+/price_output.txt
+/PROJECT_STATUS.md
+/FIX_API_KEY_401_ERROR.md
+/MIGRATION_GUIDE.md
+/NOTICE_NOT_SHOWING_FIX.md
+/NOTICE_POPUP_GUIDE.md
+/NOTICE_SYSTEM_COMPREHENSIVE_CHECK.md
+/SUPABASE_CREDENTIALS_UPDATE_GUIDE.md
+/TROUBLESHOOTING_NOTICES_404.md
+/VERCEL_ENV_SETUP_GUIDE.md
+/walkthrough.md
+/implementation_plan.md
+/task.md
