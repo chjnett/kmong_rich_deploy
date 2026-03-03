@@ -168,21 +168,33 @@ export default function ProductEditPage({ params }: PageProps) {
 
         try {
             console.log("SubCategoriesMap:", subCategoriesMap)
-            const matchedSub = subCategoriesMap.find(s => s.name === formData.subCategory)
+
+            // Find parent category ID first to ensure precise sub-category matching
+            const parentCategory = categoriesData.find(c => c.name === formData.category)
+
+            const matchedSub = subCategoriesMap.find(s =>
+                s.name === formData.subCategory &&
+                s.category_id === parentCategory?.id
+            )
 
             // If not found in map, it might be a sync issue or truly missing
             if (!matchedSub) {
-                console.error(`SubCategory mismatch! Input: "${formData.subCategory}", Map:`, subCategoriesMap)
+                console.error(`SubCategory mismatch! Input: "${formData.subCategory}" for Category: "${formData.category}", Map:`, subCategoriesMap)
 
-                // Try to find by direct DB query as fallback
+                if (!parentCategory) {
+                    throw new Error(`상위 카테고리 "${formData.category}" 정보를 찾을 수 없습니다.`)
+                }
+
+                // Try to find by direct DB query as fallback, ensuring category_id match
                 const { data: directLookUp } = await supabase
                     .from('sub_categories')
                     .select('id')
                     .eq('name', formData.subCategory)
+                    .eq('category_id', parentCategory.id)
                     .single()
 
                 if (!directLookUp) {
-                    throw new Error(`하위 카테고리 "${formData.subCategory}" 정보를 데이터베이스에서 찾을 수 없습니다. 페이지를 새로고침 해주세요.`)
+                    throw new Error(`하위 카테고리 "${formData.subCategory}" 정보를 카테고리 "${formData.category}" 내에서 찾을 수 없습니다. 페이지를 새로고침 해주세요.`)
                 }
 
                 // If found directly, proceed with this ID

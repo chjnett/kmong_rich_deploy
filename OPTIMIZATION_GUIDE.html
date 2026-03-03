@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>&#x1f680; Vercel Resource Optimization Guide &lpar;ETERNA&rpar;</title>
+            <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only],
+.vscode-high-contrast:not(.vscode-high-contrast-light) img[src$=\#gh-light-mode-only],
+.vscode-high-contrast-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+</style>
+            
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+<style>
+:root {
+  --color-note: #0969da;
+  --color-tip: #1a7f37;
+  --color-warning: #9a6700;
+  --color-severe: #bc4c00;
+  --color-caution: #d1242f;
+  --color-important: #8250df;
+}
+
+</style>
+<style>
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-note: #2f81f7;
+    --color-tip: #3fb950;
+    --color-warning: #d29922;
+    --color-severe: #db6d28;
+    --color-caution: #f85149;
+    --color-important: #a371f7;
+  }
+}
+
+</style>
+<style>
+.markdown-alert {
+  padding: 0.5rem 1rem;
+  margin-bottom: 16px;
+  color: inherit;
+  border-left: .25em solid #888;
+}
+
+.markdown-alert>:first-child {
+  margin-top: 0
+}
+
+.markdown-alert>:last-child {
+  margin-bottom: 0
+}
+
+.markdown-alert .markdown-alert-title {
+  display: flex;
+  font-weight: 500;
+  align-items: center;
+  line-height: 1
+}
+
+.markdown-alert .markdown-alert-title .octicon {
+  margin-right: 0.5rem;
+  display: inline-block;
+  overflow: visible !important;
+  vertical-align: text-bottom;
+  fill: currentColor;
+}
+
+.markdown-alert.markdown-alert-note {
+  border-left-color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-note .markdown-alert-title {
+  color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-important {
+  border-left-color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-important .markdown-alert-title {
+  color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-warning {
+  border-left-color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-warning .markdown-alert-title {
+  color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-tip {
+  border-left-color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-tip .markdown-alert-title {
+  color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-caution {
+  border-left-color: var(--color-caution);
+}
+
+.markdown-alert.markdown-alert-caution .markdown-alert-title {
+  color: var(--color-caution);
+}
+
+</style>
+        
+        </head>
+        <body class="vscode-body vscode-light">
+            <h1 id="-vercel-resource-optimization-guide-eterna">🚀 Vercel Resource Optimization Guide (ETERNA)</h1>
+<p>현재 Vercel 대시보드에서 **CPU 사용량(Fluid Active CPU)**과 <strong>이미지 최적화(Image Optimization)</strong> 비용이 임계치를 초과한 상태입니다. ETERNA의 아키텍처(Next.js + Supabase)를 기반으로 한 구체적인 최적화 방안을 정리해 드립니다.</p>
+<h2 id="1-cpu-사용량-최적화-fluid-active-cpu">1. CPU 사용량 최적화 (Fluid Active CPU)</h2>
+<p>현재 <code>app/page.tsx</code>가 모든 요청마다 서버에서 실행되도록 설정되어 있어 CPU 부하가 매우 높습니다.</p>
+<h3 id="-해결-방안-1-isr-incremental-static-regeneration-적용">✅ 해결 방안 1: ISR (Incremental Static Regeneration) 적용</h3>
+<p>매번 서버에서 새로 렌더링하는 대신, 일정 시간마다 미리 생성된 정적 페이지를 사용하도록 변경합니다.</p>
+<ul>
+<li><strong>변경 사항</strong>: <code>export const dynamic = &quot;force-dynamic&quot;</code> 제거 및 <code>revalidate</code> 설정.</li>
+<li><strong>효과</strong>: 서버 연산 횟수를 획기적으로 줄여 CPU 사용량을 낮춥니다.</li>
+</ul>
+<h3 id="-해결-방안-2-데이터베이스-레벨-필터링">✅ 해결 방안 2: 데이터베이스 레벨 필터링</h3>
+<p>현재는 모든 상품 데이터를 가져온 후 자바스크립트 메모리에서 필터링하고 있습니다. 데이터가 많아질수록 서버 부하가 기하급수적으로 늘어납니다.</p>
+<ul>
+<li><strong>변경 사항</strong>: Supabase 쿼리(<code>where</code> 절)에서 카테고리 필터링 직접 수행.</li>
+<li><strong>효과</strong>: 전송 데이터량 감소 및 서버 연산 속도 향상.</li>
+</ul>
+<h3 id="-해결-방안-3-방문자-추적-최적화">✅ 해결 방안 3: 방문자 추적 최적화</h3>
+<p>현재 서버 컴포넌트가 렌더링될 때마다 <code>incrementVisitor</code>를 실행하고 있어 페이지 로딩 시 서버 리소스를 점유합니다.</p>
+<ul>
+<li><strong>변경 사항</strong>: 클라이언트 측(<code>useEffect</code>)에서 해당 API를 호출하거나 Vercel Analytics 활용.</li>
+<li><strong>효과</strong>: 메인 페이지 렌더링 성능 향상.</li>
+</ul>
+<hr>
+<h2 id="2-이미지-최적화-image-optimization">2. 이미지 최적화 (Image Optimization)</h2>
+<p>Vercel의 무료 플랜은 월 5,000개의 이미지 변환만 무료입니다. 현재 5,600건으로 초과 상태입니다.</p>
+<h3 id="-해결-방안-1-unoptimized-설정-확인">✅ 해결 방안 1: unoptimized 설정 확인</h3>
+<p><code>next.config.mjs</code>에 <code>unoptimized: true</code>가 설정되어 있으나, 배포가 되지 않았거나 일부 컴포넌트에서 무시될 수 있습니다.</p>
+<ul>
+<li><strong>조치</strong>: 모든 <code>next/image</code> 컴포넌트가 설정값을 따르는지 확인하고 다시 배포합니다.</li>
+</ul>
+<h3 id="-해결-방안-2-외부-이미지-cdn-활용-supabase-storage">✅ 해결 방안 2: 외부 이미지 CDN 활용 (Supabase Storage)</h3>
+<p>Vercel 서버에서 이미지를 리사이징하는 대신, Supabase Storage의 자체 최적화 기능을 활용합니다.</p>
+<ul>
+<li><strong>방법</strong>: 이미지 URL 뒤에 <code>?width=400&amp;quality=75</code> 등의 파라미터를 붙여 원본 대신 최적화된 주소를 바로 호출합니다.</li>
+</ul>
+<hr>
+<h2 id="3-구조적-개선-권장안-summary">3. 구조적 개선 권장안 (Summary)</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">항목</th>
+<th style="text-align:left">현재 상태</th>
+<th style="text-align:left">최적화 후</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>렌더링 방식</strong></td>
+<td style="text-align:left">Dynamic (Every Request)</td>
+<td style="text-align:left">ISR (Background Refresh)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>필터링 로직</strong></td>
+<td style="text-align:left">In-Memory (JS)</td>
+<td style="text-align:left">Database (Supabase Query)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>이미지 처리</strong></td>
+<td style="text-align:left">Vercel Optimization</td>
+<td style="text-align:left">Client-side Scaling or CDN</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>방문자 추적</strong></td>
+<td style="text-align:left">Server Blocking</td>
+<td style="text-align:left">Client Non-blocking</td>
+</tr>
+</tbody>
+</table>
+<h2 id="️-즉시-적용-가능한-코드-가이드">🛠️ 즉시 적용 가능한 코드 가이드</h2>
+<h3 id="apppagetsx-개선-예시"><code>app/page.tsx</code> 개선 예시</h3>
+<pre><code class="language-typescript"><span class="hljs-comment">// 1. dynamic 강제 대신 ISR 사용 (예: 1시간마다 갱신)</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> revalidate = <span class="hljs-number">3600</span>; 
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-keyword">async</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">HomePage</span>(<span class="hljs-params">{ searchParams }</span>) {
+  <span class="hljs-comment">// 2. 쿼리 단계에서 필터링 적용</span>
+  <span class="hljs-keyword">let</span> query = supabase.<span class="hljs-title function_">from</span>(<span class="hljs-string">&#x27;products&#x27;</span>).<span class="hljs-title function_">select</span>(<span class="hljs-string">&#x27;*&#x27;</span>);
+  <span class="hljs-keyword">if</span> (categoryParam !== <span class="hljs-string">&quot;전체&quot;</span>) {
+    query = query.<span class="hljs-title function_">eq</span>(<span class="hljs-string">&#x27;category&#x27;</span>, categoryParam);
+  }
+  <span class="hljs-keyword">const</span> { <span class="hljs-attr">data</span>: productsData } = <span class="hljs-keyword">await</span> query;
+  <span class="hljs-comment">// ...</span>
+}
+</code></pre>
+<p>이 가이드를 바탕으로 코드를 수정하면 Vercel 비용 걱정 없이 원활하게 서비스를 운영하실 수 있습니다. 필요하시면 바로 코드 수정을 진행해 드릴까요?</p>
+
+            
+            
+        </body>
+        </html>

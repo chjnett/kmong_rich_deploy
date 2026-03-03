@@ -58,12 +58,12 @@ export default async function HomePage({
     `)
     .order('created_at', { ascending: false })
 
-  // Map to UI Product Interface
+  // Map to UI Product Interface with normalization safely handled
   const mappedProducts: Product[] = productsData?.map((p: any) => ({
     id: p.id,
     title: p.name,
-    category: p.sub_categories?.categories?.name || "Uncategorized",
-    subCategory: p.sub_categories?.name || "Uncategorized",
+    category: (p.sub_categories?.categories?.name || "Uncategorized").trim().normalize("NFC"),
+    subCategory: (p.sub_categories?.name || "Uncategorized").trim().normalize("NFC"),
     image: p.img_urls?.[0] || "",
     gallery: p.img_urls || [],
     externalUrl: p.external_url || "",
@@ -88,15 +88,20 @@ export default async function HomePage({
     description: p.description || ""
   })) || []
 
-  // 3. Filter Logic (Same as before)
+  // 3. Filter Logic (Ensuring robust matching with normalization and trimming)
   let formattedProducts = mappedProducts
 
   if (categoryParam !== "전체") {
-    formattedProducts = formattedProducts.filter(p => p.category === categoryParam)
+    formattedProducts = formattedProducts.filter(p =>
+      p.category.trim().normalize("NFC") === categoryParam.trim().normalize("NFC")
+    )
   }
 
   if (subCategoryParam) {
-    formattedProducts = formattedProducts.filter(p => p.subCategory === subCategoryParam)
+    const normalizedSubParam = subCategoryParam.trim().normalize("NFC")
+    formattedProducts = formattedProducts.filter(p =>
+      p.subCategory.trim().normalize("NFC") === normalizedSubParam
+    )
   }
 
   const stats = await statsPromise;

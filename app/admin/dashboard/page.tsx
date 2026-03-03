@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils"
 
 type ProductWithCategory = Database['public']['Tables']['products']['Row'] & {
     sub_categories: {
+        name: string
         categories: {
             id: number
             name: string
@@ -30,6 +31,7 @@ export default function AdminDashboardPage() {
     const [products, setProducts] = useState<ProductWithCategory[]>([])
     const [categories, setCategories] = useState<Category[]>([])
     const [activeCategory, setActiveCategory] = useState<string>("All")
+    const [searchQuery, setSearchQuery] = useState("")
 
     const [isLoading, setIsLoading] = useState(true)
     const router = useRouter()
@@ -69,9 +71,15 @@ export default function AdminDashboardPage() {
         fetchCategories()
     }, [])
 
-    const filteredProducts = activeCategory === "All"
-        ? products
-        : products.filter(p => p.sub_categories?.categories?.name === activeCategory)
+    const filteredProducts = products.filter(p => {
+        const matchesCategory = activeCategory === "All" || p.sub_categories?.categories?.name === activeCategory
+        const matchesSearch = !searchQuery ||
+            p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            p.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            p.sub_categories?.name.toLowerCase().includes(searchQuery.toLowerCase())
+
+        return matchesCategory && matchesSearch
+    })
 
     const handleSignOut = async () => {
         await supabase.auth.signOut()
@@ -139,8 +147,23 @@ export default function AdminDashboardPage() {
                         </Button>
                     </div>
                 </div>
-
-
+                {/* Search Bar - Minimal & Clean */}
+                <div className="relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <span className="text-muted-foreground/50">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </span>
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="전체 카테고리에서 상품명, 브랜드, ID 검색..."
+                        className="block w-full rounded-md border border-border bg-background py-2.5 pl-10 pr-3 text-sm placeholder-muted-foreground/40 focus:border-foreground/20 focus:outline-none focus:ring-0 transition-colors"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
 
                 {/* Category Filter Tabs */}
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
@@ -224,10 +247,18 @@ export default function AdminDashboardPage() {
                                     </div>
                                 </div>
 
-                                {/* Info */}
                                 <div className="flex flex-1 flex-col p-5">
                                     <div className="flex items-start justify-between">
                                         <div className="space-y-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="text-[9px] font-bold bg-muted px-1.5 py-0.5 rounded text-muted-foreground uppercase">
+                                                    {product.sub_categories?.categories?.name || "No Category"}
+                                                </span>
+                                                <span className="text-[9px] text-muted-foreground/40">/</span>
+                                                <span className="text-[9px] font-medium text-muted-foreground uppercase">
+                                                    {product.sub_categories?.name || "No Sub"}
+                                                </span>
+                                            </div>
                                             <h3 className="line-clamp-1 font-bold text-foreground text-lg">{product.name}</h3>
                                             <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest">
                                                 ID: {product.id.slice(0, 8)}
