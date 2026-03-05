@@ -13,16 +13,21 @@ const cormorant = Cormorant_Garamond({
 
 export const metadata: Metadata = {
   title: 'RICH',
-  description: '시대를 초월한 럭셔리 아이템을 엄선하여 소개합니다',
+  description: '시대를 초월한 아이템을 엄선하여 소개합니다',
   generator: 'v0.app',
   openGraph: {
     title: 'RICH',
-    description: '시대를 초월한 럭셔리 아이템을 엄선하여 소개합니다',
+    description: '시대를 초월한 아이템을 엄선하여 소개합니다',
     url: 'https://rich.vercel.app',
     siteName: 'RICH',
     locale: 'ko_KR',
     type: 'website',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'RICH',
+    description: '시대를 초월한 아이템을 엄선하여 소개합니다',
+  }
 }
 
 export const viewport: Viewport = {
