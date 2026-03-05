@@ -41,7 +41,7 @@ export default function AdminDashboardPage() {
         setIsLoading(true)
         const { data, error } = await supabase
             .from('products')
-            .select('*, sub_categories(categories(id, name))')
+            .select('*, sub_categories(name, categories(id, name))')
             .order('created_at', { ascending: false })
 
         if (error) {
@@ -73,10 +73,12 @@ export default function AdminDashboardPage() {
 
     const filteredProducts = products.filter(p => {
         const matchesCategory = activeCategory === "All" || p.sub_categories?.categories?.name === activeCategory
+        
+        const query = searchQuery.toLowerCase()
         const matchesSearch = !searchQuery ||
-            p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.sub_categories?.name.toLowerCase().includes(searchQuery.toLowerCase())
+            (p.name?.toLowerCase() || "").includes(query) ||
+            (p.id?.toLowerCase() || "").includes(query) ||
+            (p.sub_categories?.name?.toLowerCase() || "").includes(query)
 
         return matchesCategory && matchesSearch
     })

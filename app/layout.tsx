@@ -12,11 +12,11 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: 'RICH | 럭셔리 큐레이션',
+  title: 'RICH',
   description: '시대를 초월한 럭셔리 아이템을 엄선하여 소개합니다',
   generator: 'v0.app',
   openGraph: {
-    title: 'RICH | 럭셔리 큐레이션',
+    title: 'RICH',
     description: '시대를 초월한 럭셔리 아이템을 엄선하여 소개합니다',
     url: 'https://rich.vercel.app',
     siteName: 'RICH',

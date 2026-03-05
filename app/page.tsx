@@ -4,25 +4,20 @@ import { HeroSection } from "@/components/hero-section"
 import { ProductSectionClient } from "@/components/product-section-client"
 import { NoticePopup } from "@/components/notice-popup"
 import type { Category, Product } from "@/lib/data"
-import { incrementVisitor, getVisitorStats } from "@/app/actions/visitor-actions"
+import { getVisitorStats } from "@/app/actions/visitor-actions"
+import { VisitorTracker } from "@/components/visitor-tracker"
 
-// Force dynamic rendering since we rely on searchParams and DB
-export const dynamic = "force-dynamic"
-export const revalidate = 0
+// Use ISR (Incremental Static Regeneration) - Revalidate every hour
+// This significantly reduces CPU usage on Vercel
+export const revalidate = 3600
 
 export default async function HomePage({
   searchParams,
 }: {
   searchParams: Promise<{ category?: string; subCategory?: string }>
 }) {
-  // Increment visitor count on page load (server-side)
-  // We fire-and-forget this promise so it doesn't block the page load significantly,
-  // or we can await it if we want to ensure it counts before rendering.
-  // Ideally, this should be inside a useEffect on client or middleware, but Server Component is the request entry.
-  // NOTE: In Next.js Server Components, async operations are fine.
-  incrementVisitor().catch(err => console.error("Stats tracking failed", err));
-
-  const statsPromise = getVisitorStats(); // Start fetching concurrently
+  // Visitor stats are still fetched on the server for initial display
+  const statsPromise = getVisitorStats();
 
   const params = await searchParams
   const categoryParam = (params.category || "전체").normalize("NFC")
@@ -43,9 +38,8 @@ export default async function HomePage({
     })) || [])
   ]
 
-  // 2. Fetch Products
-  // We fetch all products for now as the dataset is small. For scale, filtering should move to DB query.
-  const { data: productsData } = await supabase
+  // 2. Fetch Products with DB-level filtering
+  let productsQuery = supabase
     .from('products')
     .select(`
         *,
@@ -56,9 +50,21 @@ export default async function HomePage({
             )
         )
     `)
-    .order('created_at', { ascending: false })
 
-  // Map to UI Product Interface with normalization safely handled
+  // Apply filters at DB level if they are not "전체" (All)
+  if (categoryParam !== "전체") {
+    // We need to filter by the joined category name
+    // In Supabase, we can use dot notation for joined tables
+    productsQuery = productsQuery.filter('sub_categories.categories.name', 'eq', categoryParam)
+  }
+
+  if (subCategoryParam) {
+    productsQuery = productsQuery.filter('sub_categories.name', 'eq', subCategoryParam)
+  }
+
+  const { data: productsData } = await productsQuery.order('created_at', { ascending: false })
+
+  // 3. Client-side mapping & safety (already filtered by DB)
   const mappedProducts: Product[] = productsData?.map((p: any) => ({
     id: p.id,
     title: p.name,
@@ -70,12 +76,8 @@ export default async function HomePage({
     price: (() => {
       const priceVal = p.specs?.price;
       if (!priceVal) return "";
-      // Remove commas if string
       const num = Number(String(priceVal).replace(/,/g, ''));
-      if (isNaN(num)) return priceVal; // Return original string if not number (e.g. "문의")
-
-      // Heuristic: If price is less than 10000, assume it's in thousands unit
-      // This handles "1250" -> 1,250,000
+      if (isNaN(num)) return priceVal;
       const finalPrice = num < 10000 ? num * 1000 : num;
       return `${finalPrice.toLocaleString()}원`;
     })(),
@@ -88,26 +90,13 @@ export default async function HomePage({
     description: p.description || ""
   })) || []
 
-  // 3. Filter Logic (Ensuring robust matching with normalization and trimming)
   let formattedProducts = mappedProducts
-
-  if (categoryParam !== "전체") {
-    formattedProducts = formattedProducts.filter(p =>
-      p.category.trim().normalize("NFC") === categoryParam.trim().normalize("NFC")
-    )
-  }
-
-  if (subCategoryParam) {
-    const normalizedSubParam = subCategoryParam.trim().normalize("NFC")
-    formattedProducts = formattedProducts.filter(p =>
-      p.subCategory.trim().normalize("NFC") === normalizedSubParam
-    )
-  }
 
   const stats = await statsPromise;
 
   return (
     <main className="min-h-screen bg-background">
+      <VisitorTracker />
       <HeroSection />
 
       {/* Visitor Stats Display - Clean & Minimal */}
