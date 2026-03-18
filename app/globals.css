@@ -107,6 +107,8 @@
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   /* Custom scrollbar for luxury feel */
@@ -125,5 +127,65 @@
 
   ::-webkit-scrollbar-thumb:hover {
     background: #d4d4d8;
+  }
+}
+@keyframes brand-flow-left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.brand-flow-wrap {
+  position: relative;
+  overflow: hidden;
+  border-top: 1px solid rgba(0, 0, 0, 0.16);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.16);
+  background: #ececec;
+}
+
+.brand-flow-row {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.brand-flow-track {
+  display: inline-flex;
+  min-width: max-content;
+  align-items: center;
+  gap: 2.75rem;
+  padding: 0.82rem 0;
+  animation-name: brand-flow-left;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.brand-flow-reverse {
+  animation-direction: reverse;
+}
+
+.brand-flow-item {
+  font-size: clamp(0.95rem, 1.4vw, 1.85rem);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  color: #131313;
+  text-transform: uppercase;
+}
+
+.brand-flow-accent {
+  color: #d8566d;
+}
+
+@media (max-width: 768px) {
+  .brand-flow-track {
+    gap: 2rem;
+    padding: 0.68rem 0;
+  }
+
+  .brand-flow-item {
+    font-size: 0.95rem;
+    letter-spacing: 0.06em;
   }
 }

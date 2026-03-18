@@ -52,13 +52,13 @@ export default function ProductDetailClient({ product }: { product: Product }) {
             </button>
 
             {/* 1. Image Section */}
-            <div className="relative h-[50vh] w-full shrink-0 bg-muted/20 lg:h-screen lg:w-[60%] lg:sticky lg:top-0">
+            <div className="relative h-[58svh] min-h-[360px] w-full shrink-0 bg-muted/20 lg:h-screen lg:w-[60%] lg:sticky lg:top-0">
                 <div className="relative h-full w-full">
                     <Image
                         src={gallery[currentImageIndex] || "/placeholder.svg"}
                         alt={product.title}
                         fill
-                        className="object-cover object-center"
+                        className="object-cover object-center md:object-center"
                         priority
                     />
                     {/* Navigation Arrows */}

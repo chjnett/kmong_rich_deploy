@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 
-import { Plus, Pencil, Trash2, Loader2, LogOut, FolderOpen, Bell } from "lucide-react"
+import { Plus, Pencil, Trash2, Loader2, LogOut, FolderOpen, Bell, LayoutTemplate } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -34,6 +34,7 @@ export default function AdminDashboardPage() {
     const [searchQuery, setSearchQuery] = useState("")
 
     const [isLoading, setIsLoading] = useState(true)
+    const [visitorStats, setVisitorStats] = useState({ today_count: 0, total_count: 0 })
     const router = useRouter()
     const { toast } = useToast()
 
@@ -66,9 +67,17 @@ export default function AdminDashboardPage() {
         if (data) setCategories(data)
     }
 
+    const fetchVisitorStats = async () => {
+        const { data, error } = await supabase.rpc("get_visitor_stats")
+        if (!error && data) {
+            setVisitorStats(data as { today_count: number; total_count: number })
+        }
+    }
+
     useEffect(() => {
         fetchProducts()
         fetchCategories()
+        fetchVisitorStats()
     }, [])
 
     const filteredProducts = products.filter(p => {
@@ -133,6 +142,12 @@ export default function AdminDashboardPage() {
                                 카테고리 관리
                             </Link>
                         </Button>
+                        <Button asChild variant="outline" className="border-border bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                            <Link href="/admin/dashboard/editorial">
+                                <LayoutTemplate className="mr-2 h-4 w-4" />
+                                에디토리얼 관리
+                            </Link>
+                        </Button>
                         <Button
                             variant="outline"
                             onClick={handleSignOut}
@@ -165,6 +180,18 @@ export default function AdminDashboardPage() {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
+                </div>
+
+                {/* Visitor Stats */}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="rounded-lg border border-border bg-card px-4 py-3">
+                        <p className="text-[11px] tracking-[0.14em] text-muted-foreground uppercase">Total Visits</p>
+                        <p className="mt-1 text-2xl font-bold text-foreground">{visitorStats.total_count.toLocaleString()}</p>
+                    </div>
+                    <div className="rounded-lg border border-border bg-card px-4 py-3">
+                        <p className="text-[11px] tracking-[0.14em] text-muted-foreground uppercase">Today</p>
+                        <p className="mt-1 text-2xl font-bold text-foreground">{visitorStats.today_count.toLocaleString()}</p>
+                    </div>
                 </div>
 
                 {/* Category Filter Tabs */}

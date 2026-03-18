@@ -38,8 +38,8 @@ export default async function ProductPage({
     const product: Product = {
         id: productData.id,
         title: productData.name,
-        category: productData.sub_categories?.categories?.name || "Uncategorized",
-        subCategory: productData.sub_categories?.name || "Uncategorized",
+        category: productData.sub_categories?.categories?.name || "가방",
+        subCategory: productData.sub_categories?.name || "가방",
         image: productData.img_urls?.[0] || "",
         gallery: productData.img_urls || [],
         externalUrl: productData.external_url || "",
