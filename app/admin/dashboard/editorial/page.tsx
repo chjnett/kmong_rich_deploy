@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { supabase } from "@/lib/supabase"
 import { useToast } from "@/components/ui/use-toast"
 
@@ -22,6 +23,22 @@ interface EditorialBlock {
   is_active: boolean
 }
 
+interface ProductOption {
+  id: string
+  name: string
+  image_url: string
+  category: string
+  subCategory: string
+}
+
+interface EditorialLinkedProduct {
+  id: string
+  editorial_block_id: string
+  product_id: string
+  sort_order: number
+  product: ProductOption | null
+}
+
 const createDraftBlock = (sortOrder: number) => ({
   title: "새 에디토리얼",
   subtitle: "서브 타이틀",
@@ -34,10 +51,123 @@ const createDraftBlock = (sortOrder: number) => ({
 
 export default function EditorialPage() {
   const [blocks, setBlocks] = useState<EditorialBlock[]>([])
+  const [productOptions, setProductOptions] = useState<ProductOption[]>([])
+  const [linkedProductsByBlock, setLinkedProductsByBlock] = useState<Record<string, EditorialLinkedProduct[]>>({})
+  const [pendingProductByBlock, setPendingProductByBlock] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [isAdding, setIsAdding] = useState(false)
+  const [uploadingBlockId, setUploadingBlockId] = useState<string | null>(null)
   const { toast } = useToast()
+
+  const fetchProductOptions = async () => {
+    const { data, error } = await supabase
+      .from("products")
+      .select(`
+        id,
+        name,
+        img_urls,
+        sub_categories (
+          name,
+          categories (
+            name
+          )
+        )
+      `)
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "상품 목록 로딩 실패",
+        description: error.message,
+      })
+      return
+    }
+
+    const mapped = ((data || []) as any[]).map((item) => ({
+      id: item.id,
+      name: item.name,
+      image_url: item.img_urls?.[0] || "/placeholder.svg",
+      category: item.sub_categories?.categories?.name || "기타",
+      subCategory: item.sub_categories?.name || "",
+    }))
+    setProductOptions(mapped)
+  }
+
+  const fetchLinkedProducts = async (targetBlockIds?: string[]) => {
+    const blockIds = targetBlockIds || blocks.map((block) => block.id)
+    if (blockIds.length === 0) {
+      if (!targetBlockIds) setLinkedProductsByBlock({})
+      return
+    }
+
+    const { data, error } = await supabase
+      .from("editorial_block_products")
+      .select(`
+        id,
+        editorial_block_id,
+        product_id,
+        sort_order,
+        products (
+          id,
+          name,
+          img_urls,
+          sub_categories (
+            name,
+            categories (
+              name
+            )
+          )
+        )
+      `)
+      .in("editorial_block_id", blockIds)
+      .order("sort_order", { ascending: true })
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "에디토리얼 상품 로딩 실패",
+        description: "editorial_block_products 테이블 생성이 필요합니다. SQL 가이드를 실행해주세요.",
+      })
+      return
+    }
+
+    const grouped: Record<string, EditorialLinkedProduct[]> = {}
+    blockIds.forEach((id) => {
+      grouped[id] = []
+    })
+
+    ;((data || []) as any[]).forEach((item) => {
+      const product = item.products
+      const mapped: EditorialLinkedProduct = {
+        id: item.id,
+        editorial_block_id: item.editorial_block_id,
+        product_id: item.product_id,
+        sort_order: item.sort_order,
+        product: product
+          ? {
+              id: product.id,
+              name: product.name,
+              image_url: product.img_urls?.[0] || "/placeholder.svg",
+              category: product.sub_categories?.categories?.name || "기타",
+              subCategory: product.sub_categories?.name || "",
+            }
+          : null,
+      }
+      grouped[item.editorial_block_id] = [...(grouped[item.editorial_block_id] || []), mapped]
+    })
+
+    if (targetBlockIds) {
+      setLinkedProductsByBlock((prev) => ({
+        ...prev,
+        ...grouped,
+      }))
+      return
+    }
+
+    setLinkedProductsByBlock(grouped)
+  }
 
   const fetchBlocks = async () => {
     setIsLoading(true)
@@ -56,11 +186,14 @@ export default function EditorialPage() {
       return
     }
 
-    setBlocks((data as EditorialBlock[]) || [])
+    const rows = (data as EditorialBlock[]) || []
+    setBlocks(rows)
+    await fetchLinkedProducts(rows.map((row) => row.id))
     setIsLoading(false)
   }
 
   useEffect(() => {
+    fetchProductOptions()
     fetchBlocks()
   }, [])
 
@@ -72,8 +205,7 @@ export default function EditorialPage() {
     setIsAdding(true)
     const nextOrder = blocks.length > 0 ? Math.max(...blocks.map((b) => b.sort_order)) + 1 : 1
 
-    const { data, error } = await supabase
-      .from("editorial_blocks")
+    const { data, error } = await (supabase.from("editorial_blocks") as any)
       .insert(createDraftBlock(nextOrder))
       .select("*")
       .single()
@@ -90,8 +222,7 @@ export default function EditorialPage() {
 
   const handleSave = async (block: EditorialBlock) => {
     setSavingId(block.id)
-    const { error } = await supabase
-      .from("editorial_blocks")
+    const { error } = await (supabase.from("editorial_blocks") as any)
       .update({
         title: block.title,
         subtitle: block.subtitle,
@@ -123,7 +254,77 @@ export default function EditorialPage() {
     }
 
     setBlocks((prev) => prev.filter((block) => block.id !== id))
+    setLinkedProductsByBlock((prev) => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
     toast({ title: "삭제 완료", description: "에디토리얼 블록이 삭제되었습니다." })
+  }
+
+  const handleAddProductToBlock = async (blockId: string) => {
+    const productId = pendingProductByBlock[blockId]
+    if (!productId) {
+      toast({ variant: "destructive", title: "선택 필요", description: "추가할 상품을 먼저 선택해주세요." })
+      return
+    }
+
+    const existing = linkedProductsByBlock[blockId] || []
+    if (existing.some((item) => item.product_id === productId)) {
+      toast({ variant: "destructive", title: "중복 상품", description: "이미 연결된 상품입니다." })
+      return
+    }
+
+    const nextOrder = existing.length > 0 ? Math.max(...existing.map((item) => item.sort_order)) + 1 : 1
+    const { error } = await (supabase.from("editorial_block_products") as any).insert({
+      editorial_block_id: blockId,
+      product_id: productId,
+      sort_order: nextOrder,
+    })
+
+    if (error) {
+      toast({ variant: "destructive", title: "상품 추가 실패", description: error.message })
+      return
+    }
+
+    await fetchLinkedProducts([blockId])
+    setPendingProductByBlock((prev) => ({ ...prev, [blockId]: "" }))
+    toast({ title: "상품 추가 완료", description: "에디토리얼에 상품이 연결되었습니다." })
+  }
+
+  const handleRemoveLinkedProduct = async (linkId: string, blockId: string) => {
+    const { error } = await supabase.from("editorial_block_products").delete().eq("id", linkId)
+    if (error) {
+      toast({ variant: "destructive", title: "상품 제거 실패", description: error.message })
+      return
+    }
+
+    setLinkedProductsByBlock((prev) => ({
+      ...prev,
+      [blockId]: (prev[blockId] || []).filter((item) => item.id !== linkId),
+    }))
+    toast({ title: "상품 제거 완료", description: "에디토리얼 상품 연결이 해제되었습니다." })
+  }
+
+  const handleEditorialImageUpload = async (blockId: string, file?: File) => {
+    if (!file) return
+    setUploadingBlockId(blockId)
+    try {
+      const ext = file.name.split(".").pop() || "jpg"
+      const path = `editorial_${blockId}_${Date.now()}.${ext}`
+      const { error: uploadError } = await supabase.storage.from("product-images").upload(path, file)
+      if (uploadError) throw uploadError
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("product-images").getPublicUrl(path)
+      updateBlockField(blockId, "image_url", publicUrl)
+      toast({ title: "이미지 업로드 완료", description: "저장 버튼을 누르면 반영됩니다." })
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "이미지 업로드 실패", description: error.message })
+    } finally {
+      setUploadingBlockId(null)
+    }
   }
 
   return (
@@ -190,6 +391,16 @@ export default function EditorialPage() {
                       onChange={(e) => updateBlockField(block.id, "image_url", e.target.value)}
                       placeholder="https://... 또는 /public-image.jpg"
                     />
+                    <div className="flex items-center gap-2 pt-1">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleEditorialImageUpload(block.id, e.target.files?.[0])}
+                        className="h-10"
+                      />
+                      {uploadingBlockId === block.id && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">업로드 후 저장 버튼을 눌러야 최종 반영됩니다.</p>
                   </div>
                   <div className="space-y-2">
                     <Label>클릭 링크</Label>
@@ -218,6 +429,68 @@ export default function EditorialPage() {
                         onCheckedChange={(checked) => updateBlockField(block.id, "is_active", checked)}
                       />
                     </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3 rounded-md border border-border/70 bg-muted/20 p-4">
+                  <Label className="text-sm">연결 상품</Label>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Select
+                      value={pendingProductByBlock[block.id] || ""}
+                      onValueChange={(value: string) =>
+                        setPendingProductByBlock((prev) => ({
+                          ...prev,
+                          [block.id]: value,
+                        }))
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="상품 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {productOptions.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>
+                            [{product.category}] {product.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Button type="button" variant="outline" onClick={() => handleAddProductToBlock(block.id)}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      상품 추가
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {(linkedProductsByBlock[block.id] || []).length === 0 ? (
+                      <p className="text-xs text-muted-foreground">연결된 상품이 없습니다.</p>
+                    ) : (
+                      (linkedProductsByBlock[block.id] || []).map((linked) => (
+                        <div key={linked.id} className="flex items-center gap-3 rounded-md border border-border bg-background p-2">
+                          <img
+                            src={linked.product?.image_url || "/placeholder.svg"}
+                            alt={linked.product?.name || "상품 이미지"}
+                            className="h-14 w-14 rounded-sm object-cover"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-foreground">{linked.product?.name || "삭제된 상품"}</p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {linked.product?.category || "기타"}
+                              {linked.product?.subCategory ? ` / ${linked.product.subCategory}` : ""}
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="text-muted-foreground hover:text-destructive"
+                            onClick={() => handleRemoveLinkedProduct(linked.id, block.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
 

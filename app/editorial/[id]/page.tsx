@@ -1,9 +1,19 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import { EditorialRelatedProducts } from "@/components/editorial-related-products"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
+
+const formatPrice = (raw: unknown) => {
+  if (raw === null || raw === undefined) return ""
+  const value = String(raw).trim()
+  if (!value) return ""
+  const asNumber = Number(value.replace(/,/g, ""))
+  if (Number.isNaN(asNumber)) return value
+  return `${asNumber.toLocaleString()}원`
+}
 
 const fallbackEditorialMap: Record<
   string,
@@ -70,9 +80,53 @@ export default async function EditorialDetailPage({
     .from("editorial_blocks")
     .select("*")
     .eq("id", id)
-    .single()
+    .maybeSingle()
 
-  if (error || !data) notFound()
+  const editorial = data as any
+  if (error || !editorial) notFound()
+
+  const { data: linkedProductsData } = await supabase
+    .from("editorial_block_products")
+    .select(`
+      id,
+      sort_order,
+      products (
+        id,
+        name,
+        img_urls,
+        specs,
+        sub_categories (
+          name,
+          categories (
+            name
+          )
+        )
+      )
+    `)
+    .eq("editorial_block_id", id)
+    .order("sort_order", { ascending: true })
+
+  const linkedProducts = ((linkedProductsData || []) as any[])
+    .map((item) => {
+      const product = item.products
+      if (!product?.id) return null
+      return {
+        id: product.id as string,
+        name: product.name as string,
+        image: (product.img_urls?.[0] as string) || "/placeholder.svg",
+        category: (product.sub_categories?.categories?.name as string) || "기타",
+        subCategory: (product.sub_categories?.name as string) || "",
+        price: formatPrice(product.specs?.price),
+      }
+    })
+    .filter(Boolean) as Array<{
+    id: string
+    name: string
+    image: string
+    category: string
+    subCategory: string
+    price: string
+  }>
 
   return (
     <main className="min-h-screen bg-background">
@@ -83,20 +137,22 @@ export default async function EditorialDetailPage({
 
         <div className="overflow-hidden rounded-md border border-border/50 bg-muted/20">
           <img
-            src={data.image_url || "/placeholder.jpg"}
-            alt={data.title}
+            src={editorial.image_url || "/placeholder.jpg"}
+            alt={editorial.title}
             className="h-[280px] w-full object-cover md:h-[420px]"
             loading="eager"
           />
         </div>
 
-        <p className="mt-6 text-[11px] tracking-[0.16em] text-muted-foreground">{data.subtitle}</p>
+        <p className="mt-6 text-[11px] tracking-[0.16em] text-muted-foreground">{editorial.subtitle}</p>
         <h1 className="mt-2 text-3xl font-semibold leading-tight tracking-tight text-foreground md:text-4xl">
-          {data.title}
+          {editorial.title}
         </h1>
         <div className="mt-5 whitespace-pre-wrap text-[15px] leading-7 text-muted-foreground">
-          {data.body}
+          {editorial.body}
         </div>
+
+        {linkedProducts.length > 0 && <EditorialRelatedProducts products={linkedProducts} />}
       </article>
     </main>
   )

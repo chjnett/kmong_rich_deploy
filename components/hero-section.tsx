@@ -2,12 +2,28 @@
 
 import { useEffect, useState } from "react"
 
+const kakaoSlides = [
+  "/KakaoTalk_Photo_2026-03-19-19-14-56 001.jpeg",
+  "/KakaoTalk_Photo_2026-03-19-19-14-56 002.jpeg",
+  "/KakaoTalk_Photo_2026-03-19-19-14-56 003.jpeg",
+  "/KakaoTalk_Photo_2026-03-19-19-15-14 001.jpeg",
+  "/KakaoTalk_Photo_2026-03-19-19-15-14 002.jpeg",
+]
+
 export function HeroSection() {
   const [isLoaded, setIsLoaded] = useState(false)
+  const [slideIndex, setSlideIndex] = useState(0)
 
   useEffect(() => {
     const t = setTimeout(() => setIsLoaded(true), 80)
     return () => clearTimeout(t)
+  }, [])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSlideIndex((prev) => (prev + 1) % kakaoSlides.length)
+    }, 3200)
+    return () => clearInterval(interval)
   }, [])
 
   const scrollToContent = () => {
@@ -17,14 +33,27 @@ export function HeroSection() {
 
   return (
     <section className="relative h-[74svh] w-full overflow-hidden bg-[#f3f3f1] md:h-[88vh]">
-      <img
-        src="/main_logo.jpeg"
-        alt="RICH main visual"
-        className={`h-full w-full transition-all duration-1000 ease-out md:object-cover ${isLoaded ? "scale-100 opacity-100" : "scale-[1.03] opacity-0"} object-contain object-center`}
-        loading="eager"
-      />
-
-      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/15 to-transparent" />
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        <div
+          className="flex h-full transition-transform duration-700 ease-in-out"
+          style={{
+            width: `${kakaoSlides.length * 100}%`,
+            transform: `translate3d(-${(slideIndex * 100) / kakaoSlides.length}%, 0, 0)`,
+          }}
+        >
+          {kakaoSlides.map((src, idx) => (
+            <div key={`${src}-${idx}`} className="relative h-full flex-none" style={{ width: `${100 / kakaoSlides.length}%` }}>
+              <img
+                src={src}
+                alt={`Hero slide ${idx + 1}`}
+                className={`block h-full w-full object-cover object-center transition-all duration-1000 ease-out ${isLoaded ? "scale-100 opacity-100" : "scale-[1.03] opacity-0"}`}
+                loading={idx === 0 ? "eager" : "lazy"}
+              />
+            </div>
+          ))}
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/15 to-transparent" />
+      </div>
 
       <div className="absolute inset-x-0 bottom-0 z-20 px-5 pb-7 md:px-10 md:pb-10">
         <p className={`mb-2 text-[10px] tracking-[0.22em] text-white/85 transition-all duration-700 ${isLoaded ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"}`}>

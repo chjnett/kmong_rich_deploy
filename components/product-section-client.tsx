@@ -24,13 +24,15 @@ interface EditorialCard {
   link_url?: string | null
 }
 
+const editorialImageOrder = ["/editorial1.jpeg", "/editorial2.png", "/editorial3.jpeg"] as const
+
 const editorialCards = [
   {
     id: "default-1",
     title: "이번 주 큐레이션",
     subtitle: "데일리 럭셔리 핵심 아이템",
     body: "매일 들어도 질리지 않는 컬러와 실루엣 중심으로 선별했어요.",
-    image_url: "/placeholder.jpg",
+    image_url: editorialImageOrder[0],
     link_url: "",
   },
   {
@@ -38,7 +40,7 @@ const editorialCards = [
     title: "베스트 3",
     subtitle: "가장 반응 좋은 라인업",
     body: "조회수와 저장수를 기준으로 지금 가장 인기 있는 제품만 모았어요.",
-    image_url: "/placeholder.jpg",
+    image_url: editorialImageOrder[1],
     link_url: "",
   },
   {
@@ -46,7 +48,7 @@ const editorialCards = [
     title: "신상 한정",
     subtitle: "빠르게 품절되는 신상",
     body: "입고 수량이 적은 제품들입니다. 늦기 전에 먼저 확인해보세요.",
-    image_url: "/placeholder.jpg",
+    image_url: editorialImageOrder[2],
     link_url: "",
   },
 ]
@@ -70,6 +72,7 @@ export function ProductSectionClient({
   searchQuery,
 }: ProductSectionClientProps) {
   const [mobileSubSelections, setMobileSubSelections] = useState<Record<string, string>>({})
+  const [mobileExpanded, setMobileExpanded] = useState<Record<string, boolean>>({})
   const [editorialItems, setEditorialItems] = useState<EditorialCard[]>(editorialCards)
   const mobileSectionRef = useRef<HTMLDivElement | null>(null)
 
@@ -130,17 +133,21 @@ export function ProductSectionClient({
         .filter(Boolean) || []
 
     const fromItems = Array.from(new Set(items.map((item) => normalizeLabel(item.subCategory)).filter(Boolean)))
-
     const merged = [...fromDb, ...fromItems.filter((sub) => !fromDb.includes(sub))]
     return ["전체", ...merged]
   }
 
-  const categorizedProducts = orderedCategoryNames
-    .map((categoryName) => ({
-      categoryName,
-      items: displayProducts.filter((product) => normalizeLabel(product.category) === categoryName),
-    }))
-    .filter((entry) => entry.items.length > 0)
+  const findCategoryByKeywords = (keywords: string[]) =>
+    orderedCategoryNames.find((name) => {
+      const lower = name.toLowerCase()
+      return keywords.some((keyword) => lower.includes(keyword))
+    })
+
+  const watchCategory = findCategoryByKeywords(["시계", "watch"])
+  const bagCategory = findCategoryByKeywords(["가방", "bag"])
+  const prioritizedSections = [watchCategory, bagCategory].filter(Boolean) as string[]
+  const mobileSectionCategories =
+    prioritizedSections.length > 0 ? prioritizedSections : orderedCategoryNames.slice(0, 2)
 
   useEffect(() => {
     const fetchEditorialBlocks = async () => {
@@ -157,7 +164,7 @@ export function ProductSectionClient({
         title: item.title,
         subtitle: item.subtitle,
         body: item.body,
-        image_url: item.image_url || "/placeholder.jpg",
+        image_url: item.image_url?.trim() || editorialImageOrder[item.sort_order - 1] || "/placeholder.jpg",
         link_url: item.link_url || "",
       }))
 
@@ -174,9 +181,7 @@ export function ProductSectionClient({
 
     let isPaused = false
     let resumeTimer: ReturnType<typeof setTimeout> | null = null
-    const scrollers = Array.from(
-      root.querySelectorAll<HTMLElement>('[data-auto-scroll-products="true"]')
-    )
+    const scrollers = Array.from(root.querySelectorAll<HTMLElement>('[data-auto-scroll="true"]'))
 
     if (scrollers.length === 0) return
 
@@ -194,15 +199,16 @@ export function ProductSectionClient({
       scrollers.forEach((scroller) => {
         if (scroller.scrollWidth <= scroller.clientWidth + 8) return
 
+        const step = Number(scroller.dataset.scrollStep || "132")
         const maxLeft = scroller.scrollWidth - scroller.clientWidth
-        const nextLeft = scroller.scrollLeft + 132
+        const nextLeft = scroller.scrollLeft + step
 
         if (nextLeft >= maxLeft - 4) {
           scroller.scrollTo({ left: 0, behavior: "smooth" })
           return
         }
 
-        scroller.scrollBy({ left: 132, behavior: "smooth" })
+        scroller.scrollBy({ left: step, behavior: "smooth" })
       })
     }
 
@@ -223,14 +229,18 @@ export function ProductSectionClient({
         scroller.removeEventListener("wheel", pauseAutoScroll)
       })
     }
-  }, [displayProducts.length, categories.length, searchQuery])
+  }, [displayProducts.length, searchQuery])
 
   return (
     <>
       <div ref={mobileSectionRef} className="space-y-9 md:hidden">
         <section className="space-y-3">
           <p className="text-[11px] tracking-[0.18em] text-muted-foreground">EDITORIAL</p>
-          <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1">
+          <div
+            data-auto-scroll="true"
+            data-scroll-step="296"
+            className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1"
+          >
             {editorialItems.map((card) => (
               <Link
                 key={card.id || `${card.title}-${card.subtitle}`}
@@ -258,26 +268,26 @@ export function ProductSectionClient({
           </div>
         </section>
 
-        {categorizedProducts.map(({ categoryName, items }) => {
-          const subOptions = getSubOptions(categoryName, items)
-          const selectedSub = mobileSubSelections[categoryName] || "전체"
-          const visibleItems =
-            selectedSub === "전체"
-              ? items
-              : items.filter((item) => normalizeLabel(item.subCategory) === selectedSub)
+        <section className="space-y-5">
+          {mobileSectionCategories.map((categoryName) => {
+            const categoryItems = displayProducts.filter(
+              (product) => normalizeLabel(product.category) === categoryName
+            )
+            const subOptions = getSubOptions(categoryName, categoryItems)
+            const selectedSub = mobileSubSelections[categoryName] || "전체"
+            const visibleItems =
+              selectedSub === "전체"
+                ? categoryItems
+                : categoryItems.filter((item) => normalizeLabel(item.subCategory) === selectedSub)
+            const expanded = mobileExpanded[categoryName] || false
+            const shownItems = expanded ? visibleItems : visibleItems.slice(0, 4)
 
-          return (
-            <section
-              id={`mobile-cat-${encodeURIComponent(categoryName)}`}
-              key={categoryName}
-              className="space-y-3 scroll-mt-[132px]"
-            >
-              <div className="flex items-end justify-between px-0.5">
-                <h3 className="text-[18px] font-semibold tracking-tight text-foreground">{categoryName}</h3>
-                <span className="text-[11px] text-muted-foreground">{visibleItems.length} items</span>
-              </div>
+            return (
+              <section key={categoryName} className="space-y-3 rounded-sm border border-border/60 bg-[#f8f8f6] p-2.5">
+                <div className="flex items-end border-b border-border/60 px-0.5 pb-2">
+                  <h3 className="text-[28px] font-semibold tracking-tight text-foreground">{categoryName}</h3>
+                </div>
 
-              {subOptions.length > 1 && (
                 <div className="-mx-4 overflow-x-auto px-4 pb-1">
                   <div className="inline-flex items-center gap-2">
                     {subOptions.map((sub) => {
@@ -285,16 +295,14 @@ export function ProductSectionClient({
                       return (
                         <button
                           key={`${categoryName}-${sub}`}
-                          onClick={() =>
-                            setMobileSubSelections((prev) => ({
-                              ...prev,
-                              [categoryName]: sub,
-                            }))
-                          }
-                          className={`shrink-0 whitespace-nowrap rounded-full px-3 py-2 text-[12px] leading-none transition-all ${
+                          onClick={() => {
+                            setMobileSubSelections((prev) => ({ ...prev, [categoryName]: sub }))
+                            setMobileExpanded((prev) => ({ ...prev, [categoryName]: false }))
+                          }}
+                          className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px] tracking-[0.08em] transition-colors ${
                             active
-                              ? "bg-foreground text-background"
-                              : "border border-border/60 bg-white text-muted-foreground"
+                              ? "border-foreground bg-foreground text-background"
+                              : "border-border/70 bg-white text-foreground/70"
                           }`}
                         >
                           {sub}
@@ -303,43 +311,65 @@ export function ProductSectionClient({
                     })}
                   </div>
                 </div>
-              )}
 
-              <div
-                data-auto-scroll-products="true"
-                className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2"
-              >
-                {visibleItems.map((product) => (
-                  <Link
-                    key={product.id}
-                    href={`/products/${product.id}`}
-                    className="group grid h-[346px] min-w-[196px] max-w-[196px] flex-none snap-start grid-rows-[244px_102px] overflow-hidden rounded-sm border border-border/40 bg-white"
-                  >
-                    <div className="relative h-[244px] overflow-hidden bg-muted/20">
-                      <img
-                        src={safeSrc(product.image)}
-                        alt={product.title}
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                        onError={(e) => {
-                          e.currentTarget.src = "/placeholder.svg"
-                        }}
-                      />
-                    </div>
+                <div className="grid grid-cols-2 gap-x-2 gap-y-3">
+                  {shownItems.map((product) => (
+                    <Link
+                      key={product.id}
+                      href={`/products/${product.id}`}
+                      className="group block overflow-hidden rounded-sm border border-border/70 bg-white"
+                    >
+                      <div className="relative aspect-[4/5] overflow-hidden bg-[#efefec]">
+                        <img
+                          src={safeSrc(product.image)}
+                          alt={product.title}
+                          className="h-full w-full object-cover transition-transform duration-500 group-active:scale-[0.98]"
+                          loading="lazy"
+                          onError={(e) => {
+                            e.currentTarget.src = "/placeholder.svg"
+                          }}
+                        />
+                      </div>
 
-                    <div className="grid h-[102px] grid-rows-[16px_40px_22px] content-start gap-[6px] px-2 pt-2 box-border">
-                      <p className="truncate text-[11px] leading-4 text-muted-foreground">{product.subCategory}</p>
-                      <h4 className="overflow-hidden text-[13px] font-medium leading-5 text-foreground">
-                        <span className="line-clamp-2 break-words">{product.title}</span>
-                      </h4>
-                      <p className="truncate text-[15px] font-semibold leading-[22px] text-foreground">{product.price || "\u00A0"}</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          )
-        })}
+                      <div className="space-y-1.5 border-t border-border/50 px-2 py-2">
+                        <p className="truncate text-[11px] tracking-[0.04em] text-foreground/55">
+                          {product.subCategory || categoryName}
+                        </p>
+                        <h4 className="line-clamp-2 min-h-[40px] text-[15px] leading-5 text-foreground">{product.title}</h4>
+                        <p className="truncate text-[15px] font-semibold leading-5 text-foreground">
+                          {product.price || "\u00A0"}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+
+                {visibleItems.length > 4 && (
+                  <div className="flex justify-center pt-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setMobileExpanded((prev) => ({
+                          ...prev,
+                          [categoryName]: !expanded,
+                        }))
+                      }
+                      className="rounded-full border border-border/70 bg-white px-4 py-2 text-[12px] tracking-[0.08em] text-foreground/70"
+                    >
+                      {expanded ? "접기" : "더보기"}
+                    </button>
+                  </div>
+                )}
+              </section>
+            )
+          })}
+
+          {mobileSectionCategories.length === 0 && (
+            <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+              표시할 카테고리 상품이 없습니다.
+            </div>
+          )}
+        </section>
 
         {searchQuery && filteredProducts.length === 0 && (
           <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">

@@ -33,7 +33,7 @@ export function NoticePopup() {
                 .or('end_date.is.null,end_date.gte.' + new Date().toISOString())
                 .order('created_at', { ascending: false })
                 .limit(1)
-                .single()
+                .maybeSingle()
 
             if (data && !error) {
                 // 오늘 이미 본 공지인지 확인
