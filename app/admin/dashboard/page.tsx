@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 
 import { Database } from "@/lib/database.types"
 import { useToast } from "@/components/ui/use-toast"
+import { compareLabels } from "@/lib/utils/label-utils"
 import { supabase } from "@/lib/supabase"
 // import { SeedButton } from "@/components/seed-button"
 import { cn } from "@/lib/utils"
@@ -94,7 +95,7 @@ export default function AdminDashboardPage() {
     }, [])
 
     const filteredProducts = products.filter(p => {
-        const matchesCategory = activeCategory === "All" || p.sub_categories?.categories?.name === activeCategory
+        const matchesCategory = activeCategory === "All" || compareLabels(p.sub_categories?.categories?.name, activeCategory)
 
         const query = searchQuery.toLowerCase()
         const matchesSearch = !searchQuery ||

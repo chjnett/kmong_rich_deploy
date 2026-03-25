@@ -7,6 +7,8 @@ import { ProductGrid } from "@/components/product-grid"
 import type { Category, Product } from "@/lib/data"
 import { supabase } from "@/lib/supabase"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { compareLabels, normalizeLabel } from "@/lib/utils/label-utils"
 
 interface ProductSectionClientProps {
   categories: Category[]
@@ -84,7 +86,6 @@ export function ProductSectionClient({
   const mobileSectionRef = useRef<HTMLDivElement | null>(null)
 
   const safeSrc = (src?: string) => (src?.trim() ? src : "/placeholder.svg")
-  const normalizeLabel = (value: string) => value.trim().normalize("NFC")
   const saveScrollPosition = (productId?: string) => {
     sessionStorage.setItem(SCROLL_Y_KEY, String(window.scrollY))
     sessionStorage.setItem(SCROLL_PATH_KEY, `${window.location.pathname}${window.location.search}`)
@@ -118,6 +119,8 @@ export function ProductSectionClient({
     return "/editorial"
   }
 
+  const [desktopVisibleCount, setDesktopVisibleCount] = useState(24)
+
   const filteredProducts = useMemo(
     () =>
       products.filter((product) => {
@@ -146,6 +149,13 @@ export function ProductSectionClient({
     ...categoryNamesFromDb,
     ...categoryNamesFromProducts.filter((name) => !categoryNamesFromDb.includes(name)),
   ]
+
+  // Pagination for desktop
+  const paginatedDesktopProducts = useMemo(
+    () => displayProducts.slice(0, desktopVisibleCount),
+    [displayProducts, desktopVisibleCount]
+  )
+  const hasMoreDesktop = desktopVisibleCount < displayProducts.length
 
   const getSubOptions = (categoryName: string, items: Product[]) => {
     const fromDb =
@@ -341,14 +351,14 @@ export function ProductSectionClient({
         <section className="space-y-5">
           {mobileSectionCategories.map((categoryName) => {
             const categoryItems = displayProducts.filter(
-              (product) => normalizeLabel(product.category) === categoryName
+              (product) => compareLabels(product.category, categoryName)
             )
             const subOptions = getSubOptions(categoryName, categoryItems)
             const selectedSub = mobileSubSelections[categoryName] || "전체"
             const visibleItems =
               selectedSub === "전체"
                 ? categoryItems
-                : categoryItems.filter((item) => normalizeLabel(item.subCategory) === selectedSub)
+                : categoryItems.filter((item) => compareLabels(item.subCategory, selectedSub))
             const currentVisibleCount = isSpecificCategorySelected
               ? visibleItems.length
               : (mobileVisibleCounts[categoryName] ?? 4)
@@ -468,13 +478,28 @@ export function ProductSectionClient({
         )}
       </div>
 
+      {/* Desktop view */}
       <div className="hidden md:block">
         <CategoryNav
           categories={categories}
           selectedCategory={selectedCategory}
           selectedSubCategory={selectedSubCategory}
         />
-        <ProductGrid products={displayProducts} />
+        <div className="space-y-12">
+          <ProductGrid products={paginatedDesktopProducts} />
+
+          {hasMoreDesktop && (
+            <div className="flex justify-center pt-8">
+              <Button
+                onClick={() => setDesktopVisibleCount(prev => prev + 24)}
+                variant="outline"
+                className="h-12 px-12 border-black text-xs font-semibold uppercase tracking-[0.2em] rounded-none hover:bg-black hover:text-white transition-all"
+              >
+                Show More (+24)
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     </>
   )

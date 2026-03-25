@@ -4,6 +4,7 @@ import type { Category } from "@/lib/data"
 import { cn } from "@/lib/utils"
 
 import { useRouter } from "next/navigation"
+import { compareLabels } from "@/lib/utils/label-utils"
 
 interface CategoryNavProps {
   categories: Category[]
@@ -32,7 +33,7 @@ export function CategoryNav({
     }
   }
 
-  const currentCategory = categories.find((c) => c.name === selectedCategory)
+  const currentCategory = categories.find((c) => compareLabels(c.name, selectedCategory))
   const subCategories = currentCategory?.subCategories || []
 
   return (
@@ -45,13 +46,13 @@ export function CategoryNav({
             onClick={() => handleCategoryClick(category.name)}
             className={cn(
               "relative px-1 py-2 text-sm font-medium tracking-tight transition-all duration-300 md:text-[15px]",
-              selectedCategory === category.name
+              compareLabels(selectedCategory, category.name)
                 ? "text-foreground"
                 : "text-muted-foreground/50 hover:text-muted-foreground"
             )}
           >
             {category.name}
-            {selectedCategory === category.name && (
+            {compareLabels(selectedCategory, category.name) && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />
             )}
           </button>
@@ -78,7 +79,7 @@ export function CategoryNav({
               onClick={() => handleSubCategoryClick(sub)}
               className={cn(
                 "rounded-full border px-4 py-1.5 text-xs font-normal transition-all duration-300",
-                selectedSubCategory === sub
+                compareLabels(selectedSubCategory, sub)
                   ? "border-foreground bg-foreground text-background"
                   : "border-border bg-background text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground"
               )}

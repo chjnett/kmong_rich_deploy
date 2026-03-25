@@ -8,11 +8,10 @@ import { VisitorTracker } from "@/components/visitor-tracker"
 import { BrandFlowStrip } from "@/components/brand-flow-strip"
 import { HeaderClient } from "@/components/header-client"
 import { HomeScrollRestore } from "@/components/home-scroll-restore"
+import { compareLabels } from "@/lib/utils/label-utils"
 
-// Use ISR (Incremental Static Regeneration) - Revalidate every hour
-// This significantly reduces CPU usage on Vercel
-// Use ISR - Revalidate every hour for production, but faster for updates
-export const revalidate = 60
+// Use ISR (Incremental Static Regeneration) - 10 minutes revalidation to balance update speed and server costs
+export const revalidate = 600
 
 export default async function HomePage({
   searchParams,
@@ -42,14 +41,14 @@ export default async function HomePage({
   // 2. Fetch All Products (Bypassing Supabase 1000 limit)
   const productsData = await fetchAllProducts()
 
-  // 3. Client-side mapping & safety (already filtered by DB)
+  // 3. Client-side mapping & safety
   const mappedProducts: Product[] = (productsData || []).map((p: any) => ({
     id: p.id,
     title: p.name,
     category: (p.sub_categories?.categories?.name || "Bag").trim().normalize("NFC"),
     subCategory: (p.sub_categories?.name || "etc").trim().normalize("NFC"),
     image: p.img_urls?.[0] || "",
-    gallery: p.img_urls || [],
+    gallery: (p.img_urls && p.img_urls.length > 0) ? p.img_urls : (p.img_urls?.[0] ? [p.img_urls[0]] : []),
     externalUrl: p.external_url || "",
     price: (() => {
       const priceVal = p.specs?.price;
@@ -69,12 +68,10 @@ export default async function HomePage({
   })) || []
 
   const formattedProducts = mappedProducts.filter((product) => {
-    if (categoryParam !== "전체" && product.category.toLowerCase() !== categoryParam.toLowerCase()) return false
-    if (subCategoryParam && product.subCategory.toLowerCase() !== subCategoryParam.toLowerCase()) return false
+    if (categoryParam !== "전체" && !compareLabels(product.category, categoryParam)) return false
+    if (subCategoryParam && !compareLabels(product.subCategory, subCategoryParam)) return false
     return true
   })
-
-  console.log(`[DEBUG] HomePage - Found ${mappedProducts.length} total products. After filter (${categoryParam}/${subCategoryParam}): ${formattedProducts.length}`)
 
   return (
     <main className="min-h-screen bg-background">
