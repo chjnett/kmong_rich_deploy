@@ -177,7 +177,7 @@ export function ProductSectionClient({
 
   const watchCategory = findCategoryByKeywords(["시계", "watch"])
   const bagCategory = findCategoryByKeywords(["가방", "bag"])
-  const prioritizedSections = [watchCategory, bagCategory].filter(Boolean) as string[]
+  const prioritizedSections = [bagCategory, watchCategory].filter(Boolean) as string[]
   const defaultMobileSectionCategories = [
     ...prioritizedSections,
     ...orderedCategoryNames.filter((name) => !prioritizedSections.includes(name)),

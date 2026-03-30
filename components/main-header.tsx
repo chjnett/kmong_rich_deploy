@@ -17,5 +17,14 @@ export async function MainHeader() {
         })) || [])
     ]
 
+    // Manual swap for "시계" and "가방" positions to reflect user preference
+    const bagIndex = mappedCategories.findIndex(c => c.name.includes("가방"));
+    const watchIndex = mappedCategories.findIndex(c => c.name.includes("시계"));
+    if (bagIndex !== -1 && watchIndex !== -1) {
+        const temp = mappedCategories[bagIndex];
+        mappedCategories[bagIndex] = mappedCategories[watchIndex];
+        mappedCategories[watchIndex] = temp;
+    }
+
     return <HeaderClient categories={mappedCategories} />
 }
