@@ -15,13 +15,29 @@ export function BackgroundMusic() {
     const [isPlaying, setIsPlaying] = useState(false)
     const [currentTrackIndex, setCurrentTrackIndex] = useState(Math.floor(Math.random() * SONGS.length))
     const [isMuted, setIsMuted] = useState(false)
-    const audioRef = useRef<HTMLAudioElement | null>(null)
+    const [isExpanded, setIsExpanded] = useState(true)
     const [hasInteracted, setHasInteracted] = useState(false)
+    const audioRef = useRef<HTMLAudioElement | null>(null)
+    const collapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     useEffect(() => {
         // Shuffle playlist indices initially
         setCurrentTrackIndex(Math.floor(Math.random() * SONGS.length))
+
+        // Initial auto-collapse timer (only if we start as expanded)
+        startCollapseTimer(8000) // Give more time at start
+
+        return () => {
+            if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current)
+        }
     }, [])
+
+    const startCollapseTimer = (delay = 4000) => {
+        if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current)
+        collapseTimerRef.current = setTimeout(() => {
+            setIsExpanded(false)
+        }, delay)
+    }
 
     useEffect(() => {
         const handleRemotePlay = () => {
@@ -29,6 +45,8 @@ export function BackgroundMusic() {
                 audioRef.current.play().catch(() => { })
                 setIsPlaying(true)
                 setHasInteracted(true)
+                setIsExpanded(true)
+                startCollapseTimer()
             }
         }
 
@@ -36,7 +54,8 @@ export function BackgroundMusic() {
         return () => window.removeEventListener('play-bg-music', handleRemotePlay)
     }, [isPlaying])
 
-    const togglePlay = () => {
+    const togglePlay = (e: React.MouseEvent) => {
+        e.stopPropagation()
         if (!audioRef.current) return
 
         if (isPlaying) {
@@ -46,12 +65,26 @@ export function BackgroundMusic() {
         }
         setIsPlaying(!isPlaying)
         setHasInteracted(true)
+
+        // When user manually toggles, keep it expanded for a bit
+        setIsExpanded(true)
+        startCollapseTimer()
     }
 
-    const nextTrack = () => {
+    const handleContainerClick = () => {
+        if (!isExpanded) {
+            setIsExpanded(true)
+            startCollapseTimer()
+        }
+    }
+
+    const nextTrack = (e?: React.MouseEvent) => {
+        e?.stopPropagation()
         const nextIndex = (currentTrackIndex + 1) % SONGS.length
         setCurrentTrackIndex(nextIndex)
-        // Auto play next track if it was already playing
+        setIsExpanded(true)
+        startCollapseTimer()
+
         if (isPlaying) {
             setTimeout(() => {
                 audioRef.current?.play().catch(() => { })
@@ -59,13 +92,15 @@ export function BackgroundMusic() {
         }
     }
 
-    const toggleMute = () => {
+    const toggleMute = (e: React.MouseEvent) => {
+        e.stopPropagation()
         if (!audioRef.current) return
         audioRef.current.muted = !isMuted
         setIsMuted(!isMuted)
+        setIsExpanded(true)
+        startCollapseTimer()
     }
 
-    // Handle song end to loop/randomly play next
     const handleEnded = () => {
         nextTrack()
     }
@@ -78,42 +113,48 @@ export function BackgroundMusic() {
                 onEnded={handleEnded}
             />
 
-            <div className={cn(
-                "flex items-center gap-2 overflow-hidden rounded-full bg-white/10 p-1.5 backdrop-blur-xl border border-white/20 transition-all duration-500 shadow-2xl",
-                hasInteracted ? "w-auto max-w-[200px]" : "w-11"
-            )}>
+            <div
+                onClick={handleContainerClick}
+                className={cn(
+                    "flex items-center gap-2 overflow-hidden rounded-full bg-white/20 p-1 backdrop-blur-xl border border-white/30 transition-all duration-700 ease-in-out shadow-2xl cursor-pointer",
+                    isExpanded ? "w-auto max-w-[280px] px-2 shadow-black/20" : "w-11 px-1 shadow-transparent"
+                )}
+            >
                 <button
                     onClick={togglePlay}
                     className={cn(
-                        "flex h-8 w-8 items-center justify-center rounded-full transition-all group",
+                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-500",
                         isPlaying ? "bg-black text-white" : "bg-white text-black"
                     )}
                 >
                     {isPlaying ? <Music className="h-4 w-4 animate-pulse" /> : <Music2 className="h-4 w-4" />}
                 </button>
 
-                {hasInteracted && (
-                    <div className="flex items-center gap-2 px-1">
-                        <div className="flex flex-col">
-                            <span className="text-[8px] font-black uppercase tracking-widest text-black/40">Now Playing</span>
-                            <span className="text-[10px] font-bold text-black truncate max-w-[100px]">
-                                {SONGS[currentTrackIndex].split(' - ')[0]}
-                            </span>
-                        </div>
-
-                        <div className="flex items-center gap-1">
-                            <button onClick={toggleMute} className="p-1 hover:bg-black/5 rounded-full">
-                                {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
-                            </button>
-                            <button onClick={handleEnded} className="p-1 hover:bg-black/5 rounded-full">
-                                <SkipForward className="h-3 w-3" />
-                            </button>
-                        </div>
+                {/* Information & Controls (Only visible when expanded) */}
+                <div className={cn(
+                    "flex items-center gap-3 transition-all duration-500",
+                    isExpanded ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4 pointer-events-none w-0"
+                )}>
+                    <div className="flex flex-col min-w-[80px] max-w-[120px]">
+                        <span className="text-[7px] font-black uppercase tracking-[0.2em] text-black/40">Now Playing</span>
+                        <span className="text-[10px] font-extrabold text-black truncate">
+                            {SONGS[currentTrackIndex].split(' - ')[0]}
+                        </span>
                     </div>
-                )}
+
+                    <div className="flex items-center gap-1.5 pr-2">
+                        <button onClick={toggleMute} className="p-1.5 hover:bg-black/5 rounded-full transition-colors">
+                            {isMuted ? <VolumeX className="h-3.5 w-3.5 text-black/60" /> : <Volume2 className="h-3.5 w-3.5 text-black/60" />}
+                        </button>
+                        <button onClick={(e) => nextTrack(e)} className="p-1.5 hover:bg-black/5 rounded-full transition-colors">
+                            <SkipForward className="h-3.5 w-3.5 text-black/60" />
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            {!hasInteracted && (
+            {/* "Click To Play" Badge - Only shown initially if no interaction */}
+            {!hasInteracted && isExpanded && (
                 <div className="pointer-events-none absolute -left-28 top-1/2 -translate-y-1/2 animate-bounce">
                     <span className="rounded-sm bg-black px-2 py-1 text-[8px] font-bold tracking-[0.2em] text-white uppercase shadow-lg before:absolute before:left-full before:top-1/2 before:-translate-y-1/2 before:border-4 before:border-transparent before:border-l-black">Click To play</span>
                 </div>
