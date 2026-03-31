@@ -420,7 +420,19 @@ export function ProductSectionClient({
                       onClick={() => saveScrollPosition(product.id)}
                       className="group block overflow-hidden rounded-sm border border-border/70 bg-white"
                     >
-                      <div className="space-y-1.5 border-b border-border/50 px-2 py-2">
+                      <div className="relative aspect-[4/5] overflow-hidden bg-[#efefec]">
+                        <img
+                          src={safeSrc(product.image)}
+                          alt={product.title}
+                          className="h-full w-full object-cover transition-transform duration-500 group-active:scale-[0.98]"
+                          loading="lazy"
+                          onError={(e) => {
+                            e.currentTarget.src = "/placeholder.svg"
+                          }}
+                        />
+                      </div>
+
+                      <div className="space-y-1.5 border-t border-border/50 px-2 py-2">
                         <p className="truncate text-[11px] tracking-[0.04em] text-foreground/55">
                           {product.subCategory || categoryName}
                         </p>
@@ -441,18 +453,6 @@ export function ProductSectionClient({
                             }
                           />
                         </div>
-                      </div>
-
-                      <div className="relative aspect-[4/5] overflow-hidden bg-[#efefec]">
-                        <img
-                          src={safeSrc(product.image)}
-                          alt={product.title}
-                          className="h-full w-full object-cover transition-transform duration-500 group-active:scale-[0.98]"
-                          loading="lazy"
-                          onError={(e) => {
-                            e.currentTarget.src = "/placeholder.svg"
-                          }}
-                        />
                       </div>
                     </Link>
                   ))}

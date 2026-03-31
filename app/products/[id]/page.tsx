@@ -35,37 +35,34 @@ export default async function ProductPage({
     }
 
     // Map to UI Product Interface
+    const pd = productData as any;
     const product: Product = {
-        id: productData.id,
-        title: productData.name,
-        category: productData.sub_categories?.categories?.name || "가방",
-        subCategory: productData.sub_categories?.name || "가방",
-        image: productData.img_urls?.[0] || "",
-        gallery: productData.img_urls || [],
-        externalUrl: productData.external_url || "",
+        id: pd.id,
+        title: pd.name,
+        category: pd.sub_categories?.categories?.name || "가방",
+        subCategory: pd.sub_categories?.name || "가방",
+        image: pd.img_urls?.[0] || "",
+        gallery: pd.img_urls || [],
+        externalUrl: pd.external_url || "",
         price: (() => {
-            const priceVal = productData.specs?.price;
+            const priceVal = pd.specs?.price;
             if (!priceVal) return "";
-            // Remove commas if string
             const num = Number(String(priceVal).replace(/,/g, ''));
-            if (isNaN(num)) return priceVal; // Return original string if not number (e.g. "문의")
-
-            // Heuristic: If price is less than 10000, assume it's in thousands unit
-            // This handles "1250" -> 1,250,000
+            if (isNaN(num)) return priceVal;
             const finalPrice = num < 10000 ? num * 1000 : num;
             return `${finalPrice.toLocaleString()}원`;
         })(),
         specs: {
-            modelNo: productData.specs?.modelNo || "",
-            material: productData.specs?.material || "",
-            size: productData.specs?.size || "",
-            color: productData.specs?.color || ""
+            modelNo: pd.specs?.modelNo || "",
+            material: pd.specs?.material || "",
+            size: pd.specs?.size || "",
+            color: pd.specs?.color || ""
         },
-        description: productData.description || ""
+        description: pd.description || ""
     }
 
     return (
-        <main className="min-h-screen bg-[#000000] text-white">
+        <main className="min-h-screen bg-background">
             <Suspense fallback={<div>Loading...</div>}>
                 <ProductDetailClient product={product} />
             </Suspense>

@@ -37,6 +37,8 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
+import { BackgroundMusic } from "@/components/background-music"
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -46,6 +48,7 @@ export default function RootLayout({
     <html lang="ko">
       <body className={`${cormorant.variable} font-sans antialiased bg-background text-foreground`}>
         {children}
+        <BackgroundMusic />
         <KakaoInquiryButton />
         <Toaster />
         <Analytics />

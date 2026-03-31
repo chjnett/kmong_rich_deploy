@@ -60,8 +60,35 @@ function AnimatedProductCard({
       {/* Main Link (Overlay) */}
       <Link href={`/products/${product.id}`} onClick={() => saveScrollPosition(product.id)} className="absolute inset-0 z-10" />
 
-      {/* Product Text Content - Top */}
-      <div className="mb-3 space-y-0.5 px-0.5">
+      {/* Product Image with 4:5 aspect ratio - Top */}
+      <div className="relative aspect-[4/5] overflow-hidden bg-muted/20 border border-border/40 transition-all duration-300 group-hover:shadow-sm">
+        <Image
+          src={product.image || "/placeholder.svg"}
+          alt={product.title}
+          fill
+          className="object-cover transition-transform duration-700 group-hover:scale-102"
+          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+        />
+
+        {/* External Link Button - Z-index higher than Link */}
+        <div className="absolute top-2 right-2 z-20 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+          <OrderDialog
+            productName={product.title}
+            trigger={
+              <button
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-foreground/40 backdrop-blur-sm transition-colors hover:bg-foreground hover:text-background border border-border/50"
+                title="주문하기"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </button>
+            }
+          />
+        </div>
+      </div>
+
+      {/* Product Text Content - Bottom */}
+      <div className="mt-3 space-y-0.5 px-0.5">
         {/* Brand / Subcategory - Top */}
         <p className="text-[10px] font-normal text-muted-foreground/80 lowercase tracking-tight">
           {product.subCategory}
@@ -90,33 +117,6 @@ function AnimatedProductCard({
             </button>
           }
         />
-      </div>
-
-      {/* Product Image with 4:5 aspect ratio - Bottom */}
-      <div className="relative aspect-[4/5] overflow-hidden bg-muted/20 border border-border/40 transition-all duration-300 group-hover:shadow-sm">
-        <Image
-          src={product.image || "/placeholder.svg"}
-          alt={product.title}
-          fill
-          className="object-cover transition-transform duration-700 group-hover:scale-102"
-          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
-        />
-
-        {/* External Link Button - Z-index higher than Link */}
-        <div className="absolute top-2 right-2 z-20 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-          <OrderDialog
-            productName={product.title}
-            trigger={
-              <button
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-foreground/40 backdrop-blur-sm transition-colors hover:bg-foreground hover:text-background border border-border/50"
-                title="주문하기"
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-              </button>
-            }
-          />
-        </div>
       </div>
     </div>
   )

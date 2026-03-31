@@ -37,13 +37,14 @@ export function NoticePopup() {
                 .maybeSingle()
 
             if (data && !error) {
+                const noticeItem = data as any
                 // 오늘 이미 본 공지인지 확인
                 const closedNoticeId = localStorage.getItem('closed_notice_id')
                 const closedDate = localStorage.getItem('closed_notice_date')
                 const today = new Date().toDateString()
 
-                if (closedNoticeId !== data.id || closedDate !== today) {
-                    setNotice(data)
+                if (closedNoticeId !== noticeItem.id || closedDate !== today) {
+                    setNotice(noticeItem)
                     setIsOpen(true)
                 }
             }
@@ -57,6 +58,10 @@ export function NoticePopup() {
             localStorage.setItem('closed_notice_id', notice.id)
             localStorage.setItem('closed_notice_date', new Date().toDateString())
         }
+
+        // Dispatch event to play music
+        window.dispatchEvent(new CustomEvent('play-bg-music'))
+
         setIsOpen(false)
     }
 

@@ -2,10 +2,10 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Share2, Heart, X } from "lucide-react"
+import { Share2, Heart, X, Minus, Info } from "lucide-react"
 import type { Product } from "@/lib/data"
-import { Badge } from "@/components/ui/badge"
 import { OrderDialog } from "@/components/order-dialog"
+import { cn } from "@/lib/utils"
 
 export default function ProductDetailClient({ product }: { product: Product }) {
     const router = useRouter()
@@ -29,86 +29,162 @@ export default function ProductDetailClient({ product }: { product: Product }) {
         }
     }
 
-    return (
-        <div className="flex min-h-screen flex-col bg-background lg:flex-row">
-            {/* Back Button */}
-            <button
-                onClick={() => router.back()}
-                className="fixed top-4 left-4 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-foreground backdrop-blur-md transition-colors hover:bg-muted border border-border/10 shadow-sm"
-            >
-                <X className="h-5 w-5" />
-            </button>
+    const hasSpecs = product.specs && (product.specs.modelNo || product.specs.material || product.specs.size || product.specs.color)
 
-            {/* 1. Image Section (Vertical Scroll Gallery) */}
-            <div className="w-full lg:w-[60%] bg-muted/5 flex flex-col gap-1 md:gap-2">
-                {gallery.map((url, index) => (
-                    <div key={index} className="w-full overflow-hidden bg-white flex items-center justify-center">
-                        <img
-                            src={url || "/placeholder.svg"}
-                            alt={`${product.title} - view ${index + 1}`}
-                            className="w-full h-auto object-contain max-h-[120svh]"
-                            loading={index === 0 ? "eager" : "lazy"}
-                        />
-                    </div>
-                ))}
+    return (
+        <div className="flex min-h-screen flex-col bg-background pb-32 lg:pb-0">
+            {/* Minimalist Top Nav */}
+            <div className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-border/10 bg-white/80 px-4 backdrop-blur-md">
+                <button
+                    onClick={() => router.back()}
+                    className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-zinc-100"
+                >
+                    <X className="h-5 w-5" />
+                </button>
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black tracking-widest text-black/40 uppercase">Details</span>
+                </div>
+                <div className="flex gap-1">
+                    <button onClick={handleShare} className="flex h-9 w-9 items-center justify-center text-muted-foreground hover:text-foreground">
+                        <Share2 className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => setIsWishlisted(!isWishlisted)} className={cn("flex h-9 w-9 items-center justify-center", isWishlisted ? "text-foreground" : "text-muted-foreground hover:text-foreground")}>
+                        <Heart className={`h-4 w-4 ${isWishlisted ? "fill-current" : ""}`} />
+                    </button>
+                </div>
             </div>
 
-            {/* 2. Content Section (Sticky) */}
-            <div className="flex-1 bg-background px-6 py-10 lg:sticky lg:top-0 lg:h-screen lg:flex lg:items-center lg:px-16 lg:py-0">
-                <div className="mx-auto w-full max-w-xl space-y-10">
-                    {/* Header */}
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <p className="text-[11px] font-bold tracking-[0.15em] text-muted-foreground/60 uppercase">
+            {/* Content Section (On Top) */}
+            <div className="w-full bg-white px-6 pt-10 pb-16 md:pt-16 md:pb-24 lg:px-16 border-b border-border/20">
+                <div className="mx-auto w-full max-w-3xl space-y-12">
+                    {/* Brand & Category Header */}
+                    <div className="space-y-6 text-center">
+                        <div className="flex items-center justify-center gap-3">
+                            <div className="h-[1px] w-8 bg-zinc-200 hidden sm:block"></div>
+                            <p className="text-[11px] font-bold tracking-[0.3em] text-zinc-400 uppercase">
                                 {product.category} · {product.subCategory}
                             </p>
-                            <div className="flex gap-4">
-                                <button onClick={handleShare} className="text-muted-foreground hover:text-foreground transition-colors">
-                                    <Share2 className="h-4 w-4" />
-                                </button>
-                                <button onClick={() => setIsWishlisted(!isWishlisted)} className={isWishlisted ? "text-foreground" : "text-muted-foreground hover:text-foreground transition-colors"}>
-                                    <Heart className={`h-4 w-4 ${isWishlisted ? "fill-current" : ""}`} />
-                                </button>
-                            </div>
+                            <div className="h-[1px] w-8 bg-zinc-200 hidden sm:block"></div>
                         </div>
-                        <h1 className="text-3xl font-bold text-foreground lg:text-5xl text-balance leading-[1.15] tracking-tight">
+
+                        <h1 className="text-4xl font-extrabold text-foreground sm:text-5xl lg:text-7xl text-balance leading-[0.95] tracking-tighter sm:tracking-[-0.04em]">
                             {product.title}
                         </h1>
                     </div>
 
-                    {/* Price Display */}
+                    {/* Pricing Highlight */}
                     {product.price && (
-                        <div className="flex items-center gap-3 py-2 border-y border-border/40">
-                            <span className="text-[10px] font-black tracking-widest text-muted-foreground uppercase">
-                                Price
-                            </span>
-                            <span className="text-2xl font-bold text-foreground md:text-3xl tracking-tighter">
+                        <div className="flex flex-col items-center justify-center space-y-1 pt-6 border-t border-border/20">
+                            <span className="text-[9px] font-black tracking-[0.4em] text-zinc-400 uppercase">Estimation Price</span>
+                            <span className="text-4xl font-bold text-black tracking-tighter md:text-5xl">
                                 {product.price}
                             </span>
                         </div>
                     )}
 
-                    {/* Description */}
-                    <div className="space-y-4">
-                        <h3 className="text-[10px] font-black text-foreground uppercase tracking-[0.2em]">Description</h3>
-                        <p className="text-[14px] leading-7 text-muted-foreground whitespace-pre-wrap font-medium">
-                            {product.description}
-                        </p>
+                    {/* Dual Column Layout for Description & Specs on Desktop */}
+                    <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-16 pt-8 border-t border-border/20">
+                        {/* 1. Description */}
+                        <div className="space-y-5">
+                            <div className="flex items-center gap-2">
+                                <Info className="h-3 w-3 text-zinc-400" />
+                                <h3 className="text-[10px] font-black text-black uppercase tracking-[0.3em]">Description</h3>
+                            </div>
+                            <div className="relative">
+                                <div className="absolute -left-4 top-0 bottom-0 w-[1px] bg-zinc-100"></div>
+                                <p className="text-[15px] leading-[1.8] text-zinc-600 whitespace-pre-wrap font-medium pl-2">
+                                    {product.description}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* 2. Specifications */}
+                        {hasSpecs && (
+                            <div className="space-y-5">
+                                <div className="flex items-center gap-2">
+                                    <Minus className="h-3 w-3 text-zinc-400" />
+                                    <h3 className="text-[10px] font-black text-black uppercase tracking-[0.3em]">Specifications</h3>
+                                </div>
+                                <div className="space-y-4 rounded-lg bg-zinc-50 p-6 md:p-8 border border-zinc-100">
+                                    {product.specs.modelNo && (
+                                        <div className="flex justify-between border-b border-zinc-200/60 pb-3">
+                                            <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Model</span>
+                                            <span className="text-[13px] font-medium text-black">{product.specs.modelNo}</span>
+                                        </div>
+                                    )}
+                                    {product.specs.material && (
+                                        <div className="flex justify-between border-b border-zinc-200/60 pb-3">
+                                            <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Material</span>
+                                            <span className="text-[13px] font-medium text-black">{product.specs.material}</span>
+                                        </div>
+                                    )}
+                                    {product.specs.size && (
+                                        <div className="flex justify-between border-b border-zinc-200/60 pb-3">
+                                            <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Size</span>
+                                            <span className="text-[13px] font-medium text-black">{product.specs.size}</span>
+                                        </div>
+                                    )}
+                                    {product.specs.color && (
+                                        <div className="flex justify-between pb-1">
+                                            <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Color</span>
+                                            <span className="text-[13px] font-medium text-black">{product.specs.color}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Action Footer */}
-                    <div className="pt-6">
+                    {/* Action - Desktop Hidden (use sticky bottom) */}
+                    <div className="flex justify-center pt-8">
                         <OrderDialog
                             productName={product.title}
                             trigger={
                                 <button
-                                    className="flex h-14 w-full items-center justify-center bg-black px-4 text-[12px] font-bold tracking-[0.2em] text-white uppercase transition-all hover:bg-zinc-800"
+                                    className="hidden lg:flex h-16 w-full max-w-md items-center justify-center bg-black px-8 text-[13px] font-bold tracking-[0.4em] text-white uppercase transition-all hover:bg-zinc-800 shadow-2xl hover:-translate-y-0.5 active:scale-95"
                                 >
-                                    주문하기
+                                    주문 접수하기
                                 </button>
                             }
                         />
                     </div>
+                </div>
+            </div>
+
+            {/* 2. Gallery Section (Immersive) */}
+            <div className="w-full bg-zinc-50/30 flex flex-col items-center">
+                <div className="w-full max-w-6xl space-y-4 md:space-y-12 py-8 px-0 md:px-6 lg:px-12">
+                    <div className="text-center pb-8 opacity-40">
+                        <span className="text-[9px] uppercase tracking-[0.5em] font-black">Gallery View</span>
+                    </div>
+                    {gallery.map((url, index) => (
+                        <div key={index} className="w-full overflow-hidden bg-white flex items-center justify-center shadow-[0_10px_40px_-15px_rgba(0,0,0,0.1)] transition-transform duration-700 hover:scale-[1.01]">
+                            <img
+                                src={url || "/placeholder.svg"}
+                                alt={`${product.title} view ${index + 1}`}
+                                className="w-full h-auto object-contain max-h-[140svh]"
+                                loading={index === 0 ? "eager" : "lazy"}
+                            />
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Enhanced Sticky Bottom Bar for All Viewports (for quick access) */}
+            <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-xl border-t border-border/20 p-4 lg:px-12 lg:py-6">
+                <div className="mx-auto flex max-w-6xl items-center justify-between gap-6">
+                    <div className="hidden sm:flex flex-col">
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{product.title}</span>
+                        <span className="text-xl font-bold text-black">{product.price || "Contact"}</span>
+                    </div>
+                    <OrderDialog
+                        productName={product.title}
+                        trigger={
+                            <button className="h-14 flex-1 lg:max-w-md bg-black text-white font-bold text-[12px] tracking-[0.3em] uppercase transition-all hover:bg-zinc-800 active:scale-95 shadow-lg">
+                                주문 신청하기
+                            </button>
+                        }
+                    />
                 </div>
             </div>
         </div>
