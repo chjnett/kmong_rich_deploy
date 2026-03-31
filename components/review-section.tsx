@@ -13,118 +13,99 @@ interface Review {
 }
 
 export function ReviewSection({ reviews }: { reviews: Review[] }) {
+    const [isMounted, setIsMounted] = useState(false)
     const containerRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
-        const root = containerRef.current
-        if (!root || typeof window === "undefined" || reviews.length === 0) return
-        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+        setIsMounted(true)
+    }, [])
 
-        let isPaused = false
-        const scrollers = Array.from(root.querySelectorAll<HTMLElement>('[data-auto-scroll="true"]'))
-
-        if (scrollers.length === 0) return
-
-        const tick = () => {
-            if (isPaused) return
-
-            scrollers.forEach((scroller) => {
-                if (scroller.scrollWidth <= scroller.clientWidth + 8) return
-
-                const step = 280 // approximate card width
-                const maxLeft = scroller.scrollWidth - scroller.clientWidth
-                const nextLeft = scroller.scrollLeft + step
-
-                if (nextLeft >= maxLeft - 4) {
-                    scroller.scrollTo({ left: 0, behavior: "smooth" })
-                    return
-                }
-
-                scroller.scrollBy({ left: step, behavior: "smooth" })
-            })
-        }
-
-        const intervalId = window.setInterval(tick, 3000)
-
-        const pauseAutoScroll = () => {
-            isPaused = true
-            setTimeout(() => {
-                isPaused = false
-            }, 5000)
-        }
-
-        scrollers.forEach((scroller) => {
-            scroller.addEventListener("touchstart", pauseAutoScroll, { passive: true })
-            scroller.addEventListener("pointerdown", pauseAutoScroll)
-            scroller.addEventListener("wheel", pauseAutoScroll, { passive: true })
-        })
-
-        return () => {
-            window.clearInterval(intervalId)
-            scrollers.forEach((scroller) => {
-                scroller.removeEventListener("touchstart", pauseAutoScroll)
-                scroller.removeEventListener("pointerdown", pauseAutoScroll)
-                scroller.removeEventListener("wheel", pauseAutoScroll)
-            })
-        }
-    }, [reviews.length])
+    const formatDate = (dateStr: string) => {
+        if (!dateStr) return ""
+        const d = new Date(dateStr)
+        const year = d.getFullYear()
+        const month = String(d.getMonth() + 1).padStart(2, '0')
+        const day = String(d.getDate()).padStart(2, '0')
+        return `${year}. ${month}. ${day}.`
+    }
 
     if (!reviews || reviews.length === 0) return null
 
     return (
-        <section className="py-16 md:py-24 overflow-hidden border-t border-border/40" ref={containerRef}>
-            <div className="mx-auto max-w-6xl px-4 md:px-8 space-y-8">
-                <div className="text-center space-y-3">
-                    <p className="text-[11px] tracking-[0.2em] font-semibold text-muted-foreground uppercase">
-                        Testimonials
-                    </p>
-                    <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
-                        고객님들의 소중한 리뷰
-                    </h2>
-                </div>
+        <section className="space-y-3 py-4">
+            <div className="flex items-center justify-between px-1">
+                <p className="text-[11px] tracking-[0.18em] text-muted-foreground uppercase font-semibold">
+                    Customer Reviews
+                </p>
+                <div className="h-[1px] flex-1 bg-border/40 mx-4 hidden md:block"></div>
+            </div>
 
-                <div
-                    data-auto-scroll="true"
-                    className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0"
-                >
-                    {reviews.map((review) => (
-                        <div
-                            key={review.id}
-                            className="flex-none w-[280px] snap-center rounded-lg border border-border bg-card overflow-hidden shadow-sm"
-                        >
-                            <div className="p-6 space-y-4">
-                                <div className="flex items-center gap-1">
+            <div
+                data-auto-scroll="true"
+                data-scroll-step="296"
+                className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 scrollbar-hide"
+            >
+                {reviews.map((review) => (
+                    <div
+                        key={review.id}
+                        className="group min-w-[284px] max-w-[284px] snap-start overflow-hidden rounded-md border border-border/60 bg-white shadow-sm transition-all hover:shadow-md"
+                    >
+                        {/* Image Block - Editorial Style */}
+                        <div className="relative h-[152px] overflow-hidden bg-muted/20">
+                            {review.image_url ? (
+                                <img
+                                    src={review.image_url}
+                                    alt="Review photo"
+                                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                    loading="lazy"
+                                />
+                            ) : (
+                                <div className="flex h-full w-full flex-col items-center justify-center bg-zinc-50 p-6 text-center">
+                                    <div className="flex gap-1 mb-2">
+                                        {[...Array(5)].map((_, i) => (
+                                            <Star
+                                                key={i}
+                                                className={`h-4 w-4 ${i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-muted/20"}`}
+                                            />
+                                        ))}
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-[0.1em]">Verified Purchase</p>
+                                </div>
+                            )}
+                            {/* Floating Stars if image exists */}
+                            {review.image_url && (
+                                <div className="absolute bottom-2 left-2 flex gap-0.5 rounded-full bg-white/80 px-2 py-1 backdrop-blur-sm">
                                     {[...Array(5)].map((_, i) => (
                                         <Star
                                             key={i}
-                                            className={`h-4 w-4 ${i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-muted/30"}`}
+                                            className={`h-2.5 w-2.5 ${i < review.rating ? "fill-yellow-500 text-yellow-500" : "text-zinc-300"}`}
                                         />
                                     ))}
                                 </div>
-                                <p className="text-[15px] leading-relaxed text-foreground min-h-[60px] line-clamp-4">
-                                    "{review.content}"
+                            )}
+                        </div>
+
+                        {/* Content Block - Editorial Style */}
+                        <div className="space-y-1.5 p-4">
+                            <div className="flex items-center justify-between">
+                                <p className="text-[10px] tracking-[0.12em] text-muted-foreground font-bold uppercase">
+                                    {review.author_name}
                                 </p>
-                                {review.image_url && (
-                                    <div className="relative aspect-video rounded-md overflow-hidden bg-muted/20">
-                                        <img
-                                            src={review.image_url}
-                                            alt="Review attachment"
-                                            className="w-full h-full object-cover"
-                                        />
-                                    </div>
-                                )}
-                                <div className="pt-2 border-t border-border/40 flex items-center justify-between">
-                                    <p className="text-sm font-semibold text-foreground">
-                                        {review.author_name}
-                                    </p>
-                                    <p className="text-[11px] text-muted-foreground">
-                                        {new Date(review.created_at).toLocaleDateString()}
-                                    </p>
-                                </div>
+                                <p className="text-[9px] text-muted-foreground/50">
+                                    {isMounted ? formatDate(review.created_at) : ""}
+                                </p>
+                            </div>
+                            <h3 className="line-clamp-2 text-[15px] font-semibold leading-tight tracking-tight text-foreground min-h-[40px]">
+                                {review.content}
+                            </h3>
+                            <div className="pt-2">
+                                <span className="inline-block text-[10px] font-bold text-black border-b border-black uppercase tracking-widest pb-0.5 cursor-pointer hover:opacity-70">
+                                    Read more
+                                </span>
                             </div>
                         </div>
-                    ))}
-                </div>
+                    </div>
+                ))}
             </div>
         </section>
     )

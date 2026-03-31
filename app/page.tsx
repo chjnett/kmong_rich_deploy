@@ -108,10 +108,9 @@ export default async function HomePage({
             selectedCategory={categoryParam}
             selectedSubCategory={subCategoryParam || null}
             searchQuery={searchParam}
+            reviews={reviewsData || []}
           />
         </section>
-
-        <ReviewSection reviews={reviewsData || []} />
       </div>
 
       <NoticePopup />

@@ -10,6 +10,16 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { compareLabels, normalizeLabel } from "@/lib/utils/label-utils"
 import { OrderDialog } from "@/components/order-dialog"
+import { ReviewSection } from "./review-section"
+
+interface Review {
+  id: string
+  author_name: string
+  content: string
+  rating: number
+  image_url: string | null
+  created_at: string
+}
 
 interface ProductSectionClientProps {
   categories: Category[]
@@ -17,6 +27,7 @@ interface ProductSectionClientProps {
   selectedCategory: string
   selectedSubCategory: string | null
   searchQuery: string
+  reviews: Review[]
 }
 
 interface EditorialCard {
@@ -80,6 +91,7 @@ export function ProductSectionClient({
   selectedCategory,
   selectedSubCategory,
   searchQuery,
+  reviews,
 }: ProductSectionClientProps) {
   const [mobileSubSelections, setMobileSubSelections] = useState<Record<string, string>>({})
   const [mobileVisibleCounts, setMobileVisibleCounts] = useState<Record<string, number>>({})
@@ -349,6 +361,8 @@ export function ProductSectionClient({
           </div>
         </section>
 
+        <ReviewSection reviews={reviews} />
+
         <section className="space-y-5">
           {mobileSectionCategories.map((categoryName) => {
             const categoryItems = displayProducts.filter(
@@ -406,19 +420,7 @@ export function ProductSectionClient({
                       onClick={() => saveScrollPosition(product.id)}
                       className="group block overflow-hidden rounded-sm border border-border/70 bg-white"
                     >
-                      <div className="relative aspect-[4/5] overflow-hidden bg-[#efefec]">
-                        <img
-                          src={safeSrc(product.image)}
-                          alt={product.title}
-                          className="h-full w-full object-cover transition-transform duration-500 group-active:scale-[0.98]"
-                          loading="lazy"
-                          onError={(e) => {
-                            e.currentTarget.src = "/placeholder.svg"
-                          }}
-                        />
-                      </div>
-
-                      <div className="space-y-1.5 border-t border-border/50 px-2 py-2">
+                      <div className="space-y-1.5 border-b border-border/50 px-2 py-2">
                         <p className="truncate text-[11px] tracking-[0.04em] text-foreground/55">
                           {product.subCategory || categoryName}
                         </p>
@@ -439,6 +441,18 @@ export function ProductSectionClient({
                             }
                           />
                         </div>
+                      </div>
+
+                      <div className="relative aspect-[4/5] overflow-hidden bg-[#efefec]">
+                        <img
+                          src={safeSrc(product.image)}
+                          alt={product.title}
+                          className="h-full w-full object-cover transition-transform duration-500 group-active:scale-[0.98]"
+                          loading="lazy"
+                          onError={(e) => {
+                            e.currentTarget.src = "/placeholder.svg"
+                          }}
+                        />
                       </div>
                     </Link>
                   ))}
@@ -502,6 +516,10 @@ export function ProductSectionClient({
               </Button>
             </div>
           )}
+
+          <div className="pt-16 border-t border-border/20">
+            <ReviewSection reviews={reviews} />
+          </div>
         </div>
       </div>
     </>

@@ -1,47 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { Share2, Heart, ChevronLeft, ChevronRight, X } from "lucide-react"
+import { Share2, Heart, X } from "lucide-react"
 import type { Product } from "@/lib/data"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { OrderDialog } from "@/components/order-dialog"
 
-const KAKAO_PAYMENT_URL = "https://open.kakao.com/o/sVOBwxli"
-
 export default function ProductDetailClient({ product }: { product: Product }) {
     const router = useRouter()
-    const [currentImageIndex, setCurrentImageIndex] = useState(0)
     const [isWishlisted, setIsWishlisted] = useState(false)
-    const [touchStartX, setTouchStartX] = useState<number | null>(null)
 
     const gallery = product.gallery && product.gallery.length > 0 ? product.gallery : [product.image]
-
-    const nextImage = () => {
-        if (gallery.length <= 1) return
-        setCurrentImageIndex((prev) => (prev + 1) % gallery.length)
-    }
-
-    const prevImage = () => {
-        if (gallery.length <= 1) return
-        setCurrentImageIndex((prev) => (prev - 1 + gallery.length) % gallery.length)
-    }
-
-    const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-        setTouchStartX(e.touches[0]?.clientX ?? null)
-    }
-
-    const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
-        if (touchStartX === null) return
-        const endX = e.changedTouches[0]?.clientX ?? touchStartX
-        const diff = touchStartX - endX
-        setTouchStartX(null)
-        if (Math.abs(diff) < 40) return
-        if (diff > 0) nextImage()
-        else prevImage()
-    }
 
     const handleShare = async () => {
         if (navigator.share) {
@@ -64,91 +34,55 @@ export default function ProductDetailClient({ product }: { product: Product }) {
             {/* Back Button */}
             <button
                 onClick={() => router.back()}
-                className="fixed top-4 left-4 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-white/50 text-foreground backdrop-blur-md transition-colors hover:bg-muted border border-border/10"
+                className="fixed top-4 left-4 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-foreground backdrop-blur-md transition-colors hover:bg-muted border border-border/10 shadow-sm"
             >
                 <X className="h-5 w-5" />
             </button>
 
-            {/* 1. Image Section */}
-            <div className="relative h-[58svh] min-h-[360px] w-full shrink-0 bg-muted/20 lg:h-screen lg:w-[60%] lg:sticky lg:top-0">
-                <div
-                    className="relative h-full w-full touch-pan-y"
-                    onTouchStart={handleTouchStart}
-                    onTouchEnd={handleTouchEnd}
-                >
-                    <Image
-                        src={gallery[currentImageIndex] || "/placeholder.svg"}
-                        alt={product.title}
-                        fill
-                        className="object-cover object-center md:object-center"
-                        priority
-                    />
-                    {/* Navigation Arrows */}
-                    {gallery.length > 1 && (
-                        <>
-                            <button
-                                onClick={prevImage}
-                                className="absolute top-1/2 left-4 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-border/20 bg-white/30 text-foreground backdrop-blur-md transition-all hover:bg-white/60 md:flex"
-                            >
-                                <ChevronLeft className="h-6 w-6" />
-                            </button>
-                            <button
-                                onClick={nextImage}
-                                className="absolute top-1/2 right-4 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-border/20 bg-white/30 text-foreground backdrop-blur-md transition-all hover:bg-white/60 md:flex"
-                            >
-                                <ChevronRight className="h-6 w-6" />
-                            </button>
-                        </>
-                    )}
-
-                    {/* Pagination Dots */}
-                    {gallery.length > 1 && (
-                        <div className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 gap-2">
-                            {gallery.map((_, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => setCurrentImageIndex(idx)}
-                                    className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentImageIndex
-                                        ? "w-8 bg-foreground"
-                                        : "w-2 bg-foreground/20 hover:bg-foreground/40"
-                                        }`}
-                                />
-                            ))}
-                        </div>
-                    )}
-                </div>
+            {/* 1. Image Section (Vertical Scroll Gallery) */}
+            <div className="w-full lg:w-[60%] bg-muted/5 flex flex-col gap-1 md:gap-2">
+                {gallery.map((url, index) => (
+                    <div key={index} className="w-full overflow-hidden bg-white flex items-center justify-center">
+                        <img
+                            src={url || "/placeholder.svg"}
+                            alt={`${product.title} - view ${index + 1}`}
+                            className="w-full h-auto object-contain max-h-[120svh]"
+                            loading={index === 0 ? "eager" : "lazy"}
+                        />
+                    </div>
+                ))}
             </div>
 
-            {/* 2. Content Section */}
-            <div className="flex flex-1 flex-col bg-background px-6 py-10 lg:min-h-screen lg:justify-center lg:px-16 lg:py-0">
+            {/* 2. Content Section (Sticky) */}
+            <div className="flex-1 bg-background px-6 py-10 lg:sticky lg:top-0 lg:h-screen lg:flex lg:items-center lg:px-16 lg:py-0">
                 <div className="mx-auto w-full max-w-xl space-y-10">
                     {/* Header */}
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                            <p className="text-sm font-medium tracking-tight text-muted-foreground/60 uppercase">
+                            <p className="text-[11px] font-bold tracking-[0.15em] text-muted-foreground/60 uppercase">
                                 {product.category} · {product.subCategory}
                             </p>
                             <div className="flex gap-4">
                                 <button onClick={handleShare} className="text-muted-foreground hover:text-foreground transition-colors">
-                                    <Share2 className="h-5 w-5" />
+                                    <Share2 className="h-4 w-4" />
                                 </button>
                                 <button onClick={() => setIsWishlisted(!isWishlisted)} className={isWishlisted ? "text-foreground" : "text-muted-foreground hover:text-foreground transition-colors"}>
-                                    <Heart className={`h-5 w-5 ${isWishlisted ? "fill-current" : ""}`} />
+                                    <Heart className={`h-4 w-4 ${isWishlisted ? "fill-current" : ""}`} />
                                 </button>
                             </div>
                         </div>
-                        <h1 className="text-3xl font-bold text-foreground lg:text-5xl text-balance leading-tight">
+                        <h1 className="text-3xl font-bold text-foreground lg:text-5xl text-balance leading-[1.15] tracking-tight">
                             {product.title}
                         </h1>
                     </div>
 
                     {/* Price Display */}
                     {product.price && (
-                        <div className="flex items-center gap-3 py-2">
-                            <Badge variant="outline" className="px-4 py-1 text-sm font-semibold tracking-tight text-foreground border-border">
-                                PRICE
-                            </Badge>
-                            <span className="text-xl font-bold text-foreground md:text-2xl">
+                        <div className="flex items-center gap-3 py-2 border-y border-border/40">
+                            <span className="text-[10px] font-black tracking-widest text-muted-foreground uppercase">
+                                Price
+                            </span>
+                            <span className="text-2xl font-bold text-foreground md:text-3xl tracking-tighter">
                                 {product.price}
                             </span>
                         </div>
@@ -156,8 +90,8 @@ export default function ProductDetailClient({ product }: { product: Product }) {
 
                     {/* Description */}
                     <div className="space-y-4">
-                        <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Description</h3>
-                        <p className="text-sm leading-8 text-muted-foreground whitespace-pre-wrap">
+                        <h3 className="text-[10px] font-black text-foreground uppercase tracking-[0.2em]">Description</h3>
+                        <p className="text-[14px] leading-7 text-muted-foreground whitespace-pre-wrap font-medium">
                             {product.description}
                         </p>
                     </div>
@@ -168,7 +102,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                             productName={product.title}
                             trigger={
                                 <button
-                                    className="flex h-12 w-full items-center justify-center rounded-md bg-black px-4 text-sm font-semibold tracking-[0.08em] text-white"
+                                    className="flex h-14 w-full items-center justify-center bg-black px-4 text-[12px] font-bold tracking-[0.2em] text-white uppercase transition-all hover:bg-zinc-800"
                                 >
                                     주문하기
                                 </button>
