@@ -59,8 +59,15 @@ export function NoticePopup() {
             localStorage.setItem('closed_notice_date', new Date().toDateString())
         }
 
-        // Dispatch event to play music
-        window.dispatchEvent(new CustomEvent('play-bg-music'))
+        // Trigger Music Directly (Standard browser reliable)
+        if (typeof window !== "undefined") {
+            const win = window as any
+            if (win.playMusicDirectly) {
+                win.playMusicDirectly()
+            } else {
+                win.dispatchEvent(new CustomEvent('play-bg-music'))
+            }
+        }
 
         setIsOpen(false)
     }

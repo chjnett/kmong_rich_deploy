@@ -50,9 +50,42 @@ export function BackgroundMusic() {
             }
         }
 
+        const handleGlobalClick = () => {
+            if (audioRef.current && !isPlaying && !hasInteracted) {
+                audioRef.current.play().then(() => {
+                    setIsPlaying(true)
+                    setHasInteracted(true)
+                    setIsExpanded(true)
+                    startCollapseTimer()
+                    window.removeEventListener('mousedown', handleGlobalClick)
+                    window.removeEventListener('touchstart', handleGlobalClick)
+                }).catch(() => { })
+            }
+        }
+
+        // Direct method for 100% reliable trigger in click handlers
+        (window as any).playMusicDirectly = () => {
+            if (audioRef.current && !isPlaying) {
+                audioRef.current.play().then(() => {
+                    setIsPlaying(true)
+                    setHasInteracted(true)
+                    setIsExpanded(true)
+                    startCollapseTimer()
+                }).catch(() => { })
+            }
+        }
+
         window.addEventListener('play-bg-music', handleRemotePlay)
-        return () => window.removeEventListener('play-bg-music', handleRemotePlay)
-    }, [isPlaying])
+        window.addEventListener('mousedown', handleGlobalClick)
+        window.addEventListener('touchstart', handleGlobalClick)
+
+        return () => {
+            window.removeEventListener('play-bg-music', handleRemotePlay)
+            window.removeEventListener('mousedown', handleGlobalClick)
+            window.removeEventListener('touchstart', handleGlobalClick)
+            delete (window as any).playMusicDirectly
+        }
+    }, [isPlaying, hasInteracted])
 
     const togglePlay = (e: React.MouseEvent) => {
         e.stopPropagation()
