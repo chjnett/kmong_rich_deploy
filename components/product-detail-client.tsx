@@ -171,20 +171,24 @@ export default function ProductDetailClient({ product }: { product: Product }) {
             </div>
 
             {/* Enhanced Sticky Bottom Bar for All Viewports (for quick access) */}
-            <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-xl border-t border-border/20 p-4 lg:px-12 lg:py-6">
-                <div className="mx-auto flex max-w-6xl items-center justify-between gap-6">
-                    <div className="hidden sm:flex flex-col">
-                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{product.title}</span>
-                        <span className="text-xl font-bold text-black">{product.price || "Contact"}</span>
-                    </div>
+            <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-border/20 p-3 lg:px-12 lg:py-4">
+                <div className="mx-auto flex max-w-6xl items-center gap-2 md:gap-4">
                     <OrderDialog
                         productName={product.title}
                         trigger={
-                            <button className="h-14 flex-1 lg:max-w-md bg-black text-white font-bold text-[12px] tracking-[0.3em] uppercase transition-all hover:bg-zinc-800 active:scale-95 shadow-lg">
-                                주문 신청하기
+                            <button className="h-14 flex-1 bg-black text-white font-bold text-[12px] tracking-[0.2em] uppercase transition-all hover:bg-zinc-800 active:scale-95 shadow-lg rounded-sm">
+                                주문하기
                             </button>
                         }
                     />
+                    <a
+                        href="https://open.kakao.com/o/sVOBwxli"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="h-14 flex-1 bg-[#FEE500] text-black font-bold text-[12px] tracking-[0.2em] uppercase flex items-center justify-center transition-all hover:bg-[#FDE100] active:scale-95 shadow-lg rounded-sm"
+                    >
+                        카톡문의하기
+                    </a>
                 </div>
             </div>
         </div>

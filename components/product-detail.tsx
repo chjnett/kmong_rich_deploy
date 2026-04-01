@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Image from "next/image"
 import { ExternalLink, Share2, Heart, X, Pencil, ChevronLeft, ChevronRight } from "lucide-react"
+import { OrderDialog } from "@/components/order-dialog"
 import {
   Dialog,
   DialogContent,
@@ -204,16 +205,27 @@ function ProductDetailContent({
         </div>
 
         {/* Action Footer - Sticky at bottom for mobile */}
-        <div className="sticky bottom-0 z-10 shrink-0 border-t border-border bg-background/95 p-6 backdrop-blur-sm md:static md:p-8 md:bg-background">
-          <Button
-            asChild
-            className="w-full h-14 bg-foreground text-base font-semibold tracking-tight text-background hover:bg-foreground/90 transition-all rounded-md"
-          >
-            <a href={KAKAO_PAYMENT_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
-              <span>주문하기</span>
-              <ExternalLink className="h-4 w-4" />
-            </a>
-          </Button>
+        <div className="sticky bottom-0 z-10 shrink-0 border-t border-border bg-background/95 p-4 backdrop-blur-sm md:static md:p-6 md:bg-background">
+          <div className="flex gap-2">
+            <OrderDialog
+              productName={product.title}
+              trigger={
+                <Button
+                  className="flex-1 h-14 bg-black text-white text-sm font-bold tracking-tight hover:bg-zinc-800 transition-all rounded-md"
+                >
+                  주문하기
+                </Button>
+              }
+            />
+            <Button
+              asChild
+              className="flex-1 h-14 bg-[#FEE500] text-black text-sm font-bold tracking-tight hover:bg-[#FDE100] transition-all rounded-md"
+            >
+              <a href={KAKAO_PAYMENT_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
+                <span>카톡문의하기</span>
+              </a>
+            </Button>
+          </div>
         </div>
       </div>
     </div>
