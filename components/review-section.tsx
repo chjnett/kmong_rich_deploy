@@ -29,6 +29,15 @@ export function ReviewSection({ reviews }: { reviews: Review[] }) {
         return `${year}. ${month}. ${day}.`
     }
 
+    const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({})
+
+    const toggleExpand = (id: string) => {
+        setExpandedIds(prev => ({
+            ...prev,
+            [id]: !prev[id]
+        }))
+    }
+
     if (!reviews || reviews.length === 0) return null
 
     return (
@@ -48,7 +57,7 @@ export function ReviewSection({ reviews }: { reviews: Review[] }) {
                 {reviews.map((review) => (
                     <div
                         key={review.id}
-                        className="group min-w-[284px] max-w-[284px] snap-start overflow-hidden rounded-md border border-border/60 bg-white shadow-sm transition-all hover:shadow-md"
+                        className="group min-w-[284px] max-w-[284px] snap-start overflow-hidden rounded-md border border-border/60 bg-white shadow-sm transition-all hover:shadow-md h-fit"
                     >
                         {/* Image Block - Editorial Style */}
                         <div className="relative h-[152px] overflow-hidden bg-muted/20">
@@ -95,12 +104,15 @@ export function ReviewSection({ reviews }: { reviews: Review[] }) {
                                     {isMounted ? formatDate(review.created_at) : ""}
                                 </p>
                             </div>
-                            <h3 className="line-clamp-2 text-[15px] font-semibold leading-tight tracking-tight text-foreground min-h-[40px]">
+                            <h3 className={`text-[15px] font-semibold leading-tight tracking-tight text-foreground min-h-[40px] whitespace-pre-wrap ${!expandedIds[review.id] ? "line-clamp-2" : ""}`}>
                                 {review.content}
                             </h3>
                             <div className="pt-2">
-                                <span className="inline-block text-[10px] font-bold text-black border-b border-black uppercase tracking-widest pb-0.5 cursor-pointer hover:opacity-70">
-                                    Read more
+                                <span
+                                    onClick={() => toggleExpand(review.id)}
+                                    className="inline-block text-[10px] font-bold text-black border-b border-black uppercase tracking-widest pb-0.5 cursor-pointer hover:opacity-70"
+                                >
+                                    {expandedIds[review.id] ? "Close" : "Read more"}
                                 </span>
                             </div>
                         </div>
