@@ -5,16 +5,7 @@ import { Music, Music2, Volume2, VolumeX, SkipForward } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const SONGS = [
-    "Blooming - bgm.mp3 (128k).mp3",
-    "Caramel lights - bgm.mp3 (128k).mp3",
-    "Forbidden Love - K'Cherie - Topic (128k).mp3",
-    "Forever starts with you - bgm.mp3 (128k).mp3",
-    "Jenevieve - Love Quotes [Official Audio] - Jenevieve (128k).mp3",
-    "Left the light on - bgm.mp3 (128k).mp3",
-    "Like i do - J.Tajor.mp3",
-    "Love Looks Like You - bgm.mp3 (128k).mp3",
-    "Some summers stay - bgm.mp3 (128k).mp3",
-    "THEY. - Play Fight with Tinashe (Official Lyric Video) - THEY. (128k).mp3"
+    "가성비-셀렉샵.mp3"
 ]
 
 export function BackgroundMusic() {
@@ -29,8 +20,7 @@ export function BackgroundMusic() {
 
     useEffect(() => {
         setMounted(true)
-        // Shuffle playlist indices initially
-        setCurrentTrackIndex(Math.floor(Math.random() * SONGS.length))
+        setCurrentTrackIndex(0)
 
         // Initial auto-collapse timer (only if we start as expanded)
         startCollapseTimer(8000) // Give more time at start
@@ -121,16 +111,14 @@ export function BackgroundMusic() {
 
     const nextTrack = (e?: React.MouseEvent) => {
         e?.stopPropagation()
-        const nextIndex = (currentTrackIndex + 1) % SONGS.length
-        setCurrentTrackIndex(nextIndex)
+        if (audioRef.current) {
+            audioRef.current.currentTime = 0
+            if (isPlaying) {
+                audioRef.current.play().catch(() => { })
+            }
+        }
         setIsExpanded(true)
         startCollapseTimer()
-
-        if (isPlaying) {
-            setTimeout(() => {
-                audioRef.current?.play().catch(() => { })
-            }, 100)
-        }
     }
 
     const toggleMute = (e: React.MouseEvent) => {
@@ -143,7 +131,7 @@ export function BackgroundMusic() {
     }
 
     const handleEnded = () => {
-        nextTrack()
+        setIsPlaying(false)
     }
 
     return (
@@ -179,7 +167,7 @@ export function BackgroundMusic() {
                     <div className="flex flex-col min-w-[80px] max-w-[120px]">
                         <span className="text-[7px] font-black uppercase tracking-[0.2em] text-black/40">Now Playing</span>
                         <span className="text-[10px] font-extrabold text-black truncate">
-                            {SONGS[currentTrackIndex].split(' - ')[0]}
+                            {SONGS[currentTrackIndex].replace('.mp3', '')}
                         </span>
                     </div>
 
